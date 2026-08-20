@@ -2541,7 +2541,7 @@ body.dark-mode .ai-result-value, body.dark-full .ai-result-value { background:#2
                         <div class="mr-status-menu" id="mrStatusMenu">
                             <div class="mr-status-item mr-status-all" onclick="selectMrStatus('All')"><span>🔎</span>All</div>
                             <div class="mr-status-item processing" onclick="selectMrStatus('Processing')"><span>⏳</span>Processing</div>
-                            <div class="mr-status-item ondelivery" onclick="selectMrStatus('On Delivery')"><span>🚛</span>On Delivery</div>
+                            <div class="mr-status-item ondelivery" onclick="selectMrStatus('Ready For Delivery')"><span>🚛</span>Ready For Delivery</div>
                             <div class="mr-status-item delivered" onclick="selectMrStatus('Delivered')"><span>✅</span>Delivered</div>
                             <div class="mr-status-item cancelled" onclick="selectMrStatus('Cancelled')"><span>❌</span>Cancelled</div>
                         </div>
@@ -3560,6 +3560,13 @@ body.dark-mode .ai-result-value, body.dark-full .ai-result-value { background:#2
         <div><span class="ak-var" onclick="rfApiKeyInsertVar('ak-tpl-confirm','{name}')">{name}</span><span class="ak-var" onclick="rfApiKeyInsertVar('ak-tpl-confirm','{invoice}')">{invoice}</span><span class="ak-var" onclick="rfApiKeyInsertVar('ak-tpl-confirm','{amount}')">{amount}</span><span class="ak-var" onclick="rfApiKeyInsertVar('ak-tpl-confirm','{shop}')">{shop}</span></div>
       </div>
       <div class="ak-card">
+        <h3>🚛 Ready For Delivery Message</h3>
+        <p class="ak-sub">Sent when the status is set to "Ready For Delivery".</p>
+        <div class="ak-field"><textarea id="ak-tpl-ready" oninput="rfApiKeyCharCount('ak-tpl-ready','ak-cc-ready')"></textarea></div>
+        <div id="ak-cc-ready" class="ak-charcount">0/160 Characters</div>
+        <div><span class="ak-var" onclick="rfApiKeyInsertVar('ak-tpl-ready','{name}')">{name}</span><span class="ak-var" onclick="rfApiKeyInsertVar('ak-tpl-ready','{invoice}')">{invoice}</span><span class="ak-var" onclick="rfApiKeyInsertVar('ak-tpl-ready','{amount}')">{amount}</span><span class="ak-var" onclick="rfApiKeyInsertVar('ak-tpl-ready','{due}')">{due}</span><span class="ak-var" onclick="rfApiKeyInsertVar('ak-tpl-ready','{shop}')">{shop}</span></div>
+      </div>
+      <div class="ak-card">
         <h3>🚚 Delivery Complete Message</h3>
         <p class="ak-sub">Sent when the status is set to "Delivered".</p>
         <div class="ak-field"><textarea id="ak-tpl-delivered" oninput="rfApiKeyCharCount('ak-tpl-delivered','ak-cc-delivered')"></textarea></div>
@@ -3947,7 +3954,7 @@ body.dark-mode .ai-result-value, body.dark-full .ai-result-value { background:#2
             <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">Message টাইপ বেছে নিন:</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                 <button id="wa-btn-confirm" style="background:#25D366;color:#fff;border:none;padding:13px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;">✅ Order Confirm</button>
-                <button id="wa-btn-delivery" style="background:#1565c0;color:#fff;border:none;padding:13px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;">🚛 On Delivery</button>
+                <button id="wa-btn-delivery" style="background:#1565c0;color:#fff;border:none;padding:13px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;">🚛 Ready For Delivery</button>
                 <button id="wa-btn-delivered" style="background:#2e7d32;color:#fff;border:none;padding:13px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;">🎉 Delivered</button>
                 <button id="wa-btn-cancelled" style="background:#c62828;color:#fff;border:none;padding:13px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;">❌ Cancelled</button>
             </div>
@@ -4646,6 +4653,12 @@ ${link}
 // 📦 CUSTOMER TRACKING PAGE (?track=INVOICE_NO)
 // ============================================================
 
+// পুরাতন সেভ করা invoice-এ deliveryStatus === 'On Delivery' থাকলেও যাতে এখন সঠিকভাবে
+// "Ready For Delivery" হিসেবে দেখায় (backward-compatible), এই হেল্পার ব্যবহার হয় সবখানে।
+function rfNormDeliveryStatus(s) {
+    return (s === 'On Delivery') ? 'Ready For Delivery' : (s || 'Processing');
+}
+
 async function maybeShowTrackingPage() {
     const params  = new URLSearchParams(window.location.search);
     const trackNo = params.get('track');
@@ -4696,14 +4709,14 @@ async function maybeShowTrackingPage() {
     }
 
     const STATUS_CONFIG = {
-        'Processing':  { icon:'⏳', label:'অর্ডার প্রক্রিয়াধীন', color:'#f39c12', bg:'#fff8e1', border:'#ffd54f' },
-        'On Delivery': { icon:'🚛', label:'ডেলিভারিতে রওনা দিয়েছে', color:'#1565c0', bg:'#e3f2fd', border:'#90caf9' },
-        'Delivered':   { icon:'✅', label:'ডেলিভারি সম্পন্ন!', color:'#2e7d32', bg:'#e8f5e9', border:'#a5d6a7' },
-        'Cancelled':   { icon:'❌', label:'অর্ডার বাতিল', color:'#c62828', bg:'#ffebee', border:'#ef9a9a' }
+        'Processing':         { icon:'⏳', label:'অর্ডার প্রক্রিয়াধীন', color:'#f39c12', bg:'#fff8e1', border:'#ffd54f' },
+        'Ready For Delivery': { icon:'🚛', label:'ডেলিভারির জন্য প্রস্তুত', color:'#1565c0', bg:'#e3f2fd', border:'#90caf9' },
+        'Delivered':          { icon:'✅', label:'ডেলিভারি সম্পন্ন!', color:'#2e7d32', bg:'#e8f5e9', border:'#a5d6a7' },
+        'Cancelled':          { icon:'❌', label:'অর্ডার বাতিল', color:'#c62828', bg:'#ffebee', border:'#ef9a9a' }
     };
-    const STATUS_STEPS = ['Processing','On Delivery','Delivered'];
+    const STATUS_STEPS = ['Processing','Ready For Delivery','Delivered'];
 
-    const curStatus = inv.deliveryStatus || 'Processing';
+    const curStatus = rfNormDeliveryStatus(inv.deliveryStatus);
     const cs        = STATUS_CONFIG[curStatus] || STATUS_CONFIG['Processing'];
     const isCancelled = curStatus === 'Cancelled';
     const curIdx    = STATUS_STEPS.indexOf(curStatus);
@@ -4931,6 +4944,7 @@ async function renderDashboard() {
 
         const statusMap = {
             'Processing': 'processing',
+            'Ready For Delivery': 'ondelivery',
             'On Delivery': 'ondelivery',
             'Delivered': 'delivered',
             'Cancelled': 'cancelled'
@@ -4948,7 +4962,7 @@ async function renderDashboard() {
             <td>
                 <select class="status-select ${cls}" onchange="updateDeliveryStatus('${inv.invoiceNo}', this)">
                     <option value="Processing" ${inv.deliveryStatus==='Processing'?'selected':''}>Processing</option>
-                    <option value="On Delivery" ${inv.deliveryStatus==='On Delivery'?'selected':''}>On Delivery</option>
+                    <option value="Ready For Delivery" ${(inv.deliveryStatus==='Ready For Delivery'||inv.deliveryStatus==='On Delivery')?'selected':''}>Ready For Delivery</option>
                     <option value="Delivered" ${inv.deliveryStatus==='Delivered'?'selected':''}>Delivered</option>
                     <option value="Cancelled" ${inv.deliveryStatus==='Cancelled'?'selected':''}>Cancelled</option>
                 </select>
@@ -5073,15 +5087,15 @@ function toggleMrPanel() {
 }
 
 // ========================================================
-// 🔎 SALES REPORT — STATUS FILTER (All / Processing / On Delivery / Delivered / Cancelled)
+// 🔎 SALES REPORT — STATUS FILTER (All / Processing / Ready For Delivery / Delivered / Cancelled)
 // ========================================================
 let mrStatusFilter = 'All';
 const MR_STATUS_META = {
-    'All':         { icon: '🔎', label: 'All' },
-    'Processing':  { icon: '⏳', label: 'Processing' },
-    'On Delivery': { icon: '🚛', label: 'On Delivery' },
-    'Delivered':   { icon: '✅', label: 'Delivered' },
-    'Cancelled':   { icon: '❌', label: 'Cancelled' }
+    'All':                { icon: '🔎', label: 'All' },
+    'Processing':         { icon: '⏳', label: 'Processing' },
+    'Ready For Delivery': { icon: '🚛', label: 'Ready For Delivery' },
+    'Delivered':          { icon: '✅', label: 'Delivered' },
+    'Cancelled':          { icon: '❌', label: 'Cancelled' }
 };
 
 function toggleMrStatusMenu() {
@@ -5119,7 +5133,7 @@ async function selectMrStatus(status) {
 
 function filterInvoicesByStatus(invoices, status) {
     if (!status || status === 'All') return invoices;
-    return invoices.filter(inv => (inv.deliveryStatus || 'Processing') === status);
+    return invoices.filter(inv => rfNormDeliveryStatus(inv.deliveryStatus) === status);
 }
 
 function renderMrInvoiceList(invoices) {
@@ -5129,9 +5143,9 @@ function renderMrInvoiceList(invoices) {
         box.innerHTML = '<p style="text-align:center;color:#999;font-size:12.5px;padding:16px;margin:0;">এই তারিখ/স্ট্যাটাসে কোনো ইনভয়েস পাওয়া যায়নি।</p>';
         return;
     }
-    const statusMap = { 'Processing':'processing', 'On Delivery':'ondelivery', 'Delivered':'delivered', 'Cancelled':'cancelled' };
+    const statusMap = { 'Processing':'processing', 'Ready For Delivery':'ondelivery', 'On Delivery':'ondelivery', 'Delivered':'delivered', 'Cancelled':'cancelled' };
     const rows = invoices.map(inv => {
-        const st = inv.deliveryStatus || 'Processing';
+        const st = rfNormDeliveryStatus(inv.deliveryStatus);
         const cls = statusMap[st] || 'processing';
         const grand = parseFloat(inv.grandTotal) || 0;
         return `<tr>
@@ -5419,7 +5433,7 @@ async function printMonthlyReport() {
             <td class="${rowCls}">${grand.toLocaleString()} ৳</td>
             <td class="${rowCls}">${paid.toLocaleString()} ৳</td>
             <td class="${rowCls}">${due.toLocaleString()} ৳</td>
-            <td class="${rowCls}">${isCancelled ? 'Cancelled' : (inv.deliveryStatus || 'Processing')}</td>
+            <td class="${rowCls}">${isCancelled ? 'Cancelled' : rfNormDeliveryStatus(inv.deliveryStatus)}</td>
         </tr>`;
     }).join('');
 
@@ -5549,7 +5563,7 @@ async function handleDashSearch(query) {
     const tbody = document.getElementById('dashboard-tbody');
     tbody.innerHTML = '';
 
-    const statusMap = { 'Processing':'processing','On Delivery':'ondelivery','Delivered':'delivered','Cancelled':'cancelled' };
+    const statusMap = { 'Processing':'processing','Ready For Delivery':'ondelivery','On Delivery':'ondelivery','Delivered':'delivered','Cancelled':'cancelled' };
 
     if (results.length === 0) {
         tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:#aaa;">
@@ -5579,7 +5593,7 @@ async function handleDashSearch(query) {
             <td>
                 <select class="status-select ${cls}" onchange="updateDeliveryStatus('${inv.invoiceNo}', this)">
                     <option value="Processing" ${inv.deliveryStatus==='Processing'?'selected':''}>Processing</option>
-                    <option value="On Delivery" ${inv.deliveryStatus==='On Delivery'?'selected':''}>On Delivery</option>
+                    <option value="Ready For Delivery" ${(inv.deliveryStatus==='Ready For Delivery'||inv.deliveryStatus==='On Delivery')?'selected':''}>Ready For Delivery</option>
                     <option value="Delivered" ${inv.deliveryStatus==='Delivered'?'selected':''}>Delivered</option>
                     <option value="Cancelled" ${inv.deliveryStatus==='Cancelled'?'selected':''}>Cancelled</option>
                 </select>
@@ -5641,10 +5655,12 @@ async function updateDeliveryStatus(invoiceNo, selectEl) {
         inv.deliveryStatus = newStatus;
         await idbSaveInvoice(inv);
         saveCloudData();
-        // 🚚 Delivered / ❌ Cancelled হলে auto SMS (একবারই — duplicate protection)
+        // 🚛 Ready For Delivery / 🚚 Delivered / ❌ Cancelled হলে auto SMS (একবারই — duplicate protection)
         try {
             if (typeof window.rfAutoSendSms === 'function') {
-                if (newStatus === 'Delivered' && !inv.deliverySmsSent) {
+                if (newStatus === 'Ready For Delivery' && !inv.readySmsSent) {
+                    window.rfAutoSendSms('ready', inv);
+                } else if (newStatus === 'Delivered' && !inv.deliverySmsSent) {
                     window.rfAutoSendSms('delivered', inv);
                 } else if (newStatus === 'Cancelled' && !inv.cancelSmsSent) {
                     window.rfAutoSendSms('cancel', inv);
@@ -5652,7 +5668,7 @@ async function updateDeliveryStatus(invoiceNo, selectEl) {
             }
         } catch(e) { console.warn('Status SMS failed', e); }
     }
-    const statusMap = { 'Processing':'processing','On Delivery':'ondelivery','Delivered':'delivered','Cancelled':'cancelled' };
+    const statusMap = { 'Processing':'processing','Ready For Delivery':'ondelivery','On Delivery':'ondelivery','Delivered':'delivered','Cancelled':'cancelled' };
     selectEl.className = 'status-select ' + (statusMap[newStatus] || 'processing');
     renderDashboard();
 }
@@ -5672,7 +5688,7 @@ async function showDeliveryDetail(invoiceNo) {
     <div style="background:linear-gradient(135deg,#f8f9fa,#e8f4f4);padding:16px;border-radius:10px;margin-bottom:14px;border:1.5px solid #b2dfdb;animation:fadeInUp 0.3s ease;">
         <h4 style="margin:0 0 12px;color:#001f3f;font-size:15px;display:flex;align-items:center;gap:8px;">
             📄 Invoice <span style="background:#001f3f;color:#fff;padding:2px 10px;border-radius:12px;font-size:13px;">#${inv.invoiceNo}</span>
-            <span style="margin-left:auto;font-size:12px;background:#008080;color:#fff;padding:3px 10px;border-radius:12px;">${inv.deliveryStatus || 'Processing'}</span>
+            <span style="margin-left:auto;font-size:12px;background:#008080;color:#fff;padding:3px 10px;border-radius:12px;">${rfNormDeliveryStatus(inv.deliveryStatus)}</span>
         </h4>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
             <div class="del-detail-row"><span class="del-detail-label">👤 Customer:</span><span class="del-detail-value">${inv.customerName || '—'}</span></div>
@@ -5698,6 +5714,7 @@ async function showDeliveryDetail(invoiceNo) {
         </div>
         <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
             <button onclick="rfResendSms('${inv.invoiceNo}','confirm')" style="background:#fff;border:1.5px solid #008080;color:#008080;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;">🔁 Resend Order SMS</button>
+            <button onclick="rfResendSms('${inv.invoiceNo}','ready')" style="background:#fff;border:1.5px solid #1565c0;color:#1565c0;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;">🔁 Resend Ready For Delivery SMS</button>
             <button onclick="rfResendSms('${inv.invoiceNo}','delivered')" style="background:#fff;border:1.5px solid #28a745;color:#28a745;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;">🔁 Resend Delivery SMS</button>
             <button onclick="rfResendSms('${inv.invoiceNo}','cancel')" style="background:#fff;border:1.5px solid #dc3545;color:#dc3545;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;">🔁 Resend Cancel SMS</button>
         </div>
@@ -6151,6 +6168,7 @@ async function saveInvoiceToHistory(invoiceData) {
         // এখন invoiceData.savedDate (যেটা এইমাত্র ইনভয়েসে দেখানো date/time থেকে বানানো হয়েছে) ব্যবহার হবে।
         invoiceData.trackToken       = existing.trackToken       || invoiceData.trackToken;
         invoiceData.confirmSmsSent   = existing.confirmSmsSent   || false;
+        invoiceData.readySmsSent     = existing.readySmsSent     || false;
         invoiceData.deliverySmsSent  = existing.deliverySmsSent  || false;
         invoiceData.cancelSmsSent    = existing.cancelSmsSent    || false;
     }
@@ -6352,7 +6370,7 @@ async function showInvoiceHistory() {
     } else {
         sorted.forEach((inv, idx) => {
             const statusClass = inv.deliveryStatus === 'Delivered' ? 'color:green' : 'color:red';
-            const statusText = inv.deliveryStatus || 'Processing';
+            const statusText = rfNormDeliveryStatus(inv.deliveryStatus);
             const commStatus = inv.commissionStatus || 'Active';
             const commStyle = commStatus === 'Cancelled' ? 'color:#6c757d; text-decoration:line-through' : 'color:green';
             html += `<tr>
@@ -10098,6 +10116,7 @@ document.addEventListener('click', (e) => {
 
     var DEFAULT_TPL = {
         confirm:   'Dear {name}, আপনার অর্ডার #{invoice} সফলভাবে Confirm হয়েছে। মোট: {amount} টাকা। ধন্যবাদ - {shop}',
+        ready:     'Dear {name}, your order #{invoice} is Ready for Delivery! Due Amount: BDT {due}. Please receive from our deliveryman. Driver: 01621156310. Thanks for connecting with us - {shop}',
         delivered: 'Dear {name}, আপনার অর্ডার #{invoice} ডেলিভারি সম্পন্ন হয়েছে। ধন্যবাদ কেনাকাটার জন্য - {shop}',
         cancel:    'Dear {name}, আপনার অর্ডার #{invoice} বাতিল করা হয়েছে। কোনো প্রশ্ন থাকলে যোগাযোগ করুন - {shop}'
     };
@@ -10115,6 +10134,7 @@ document.addEventListener('click', (e) => {
                 lastBalance: (s.lastBalance !== undefined) ? s.lastBalance : null,
                 tpl: {
                     confirm:   (s.tpl && s.tpl.confirm)   || DEFAULT_TPL.confirm,
+                    ready:     (s.tpl && s.tpl.ready)     || DEFAULT_TPL.ready,
                     delivered: (s.tpl && s.tpl.delivered) || DEFAULT_TPL.delivered,
                     cancel:    (s.tpl && s.tpl.cancel)    || DEFAULT_TPL.cancel
                 }
@@ -10211,6 +10231,7 @@ document.addEventListener('click', (e) => {
             .replace(/{name}/g, inv.customerName || 'Customer')
             .replace(/{invoice}/g, inv.invoiceNo || '')
             .replace(/{amount}/g, (parseFloat(inv.grandTotal || 0)).toLocaleString())
+            .replace(/{due}/g, (parseFloat(inv.due || 0)).toLocaleString())
             .replace(/{shop}/g, 'Rahman Furniture');
     }
 
@@ -10453,7 +10474,7 @@ document.addEventListener('click', (e) => {
         if (!s.enabled) return; // If Master switch is OFF, nothing happens, no popup
         var number = primaryPhone(inv.customerPhone);
         if (!number) return;
-        var tplKey = type === 'confirm' ? 'confirm' : (type === 'delivered' ? 'delivered' : 'cancel');
+        var tplKey = type === 'confirm' ? 'confirm' : (type === 'ready' ? 'ready' : (type === 'delivered' ? 'delivered' : 'cancel'));
         var msg = fillTemplate(s.tpl[tplKey], inv);
         enqueueSms(type, inv, number, msg, false);
     };
@@ -10465,7 +10486,7 @@ document.addEventListener('click', (e) => {
         var s = getSettings();
         var number = primaryPhone(inv.customerPhone);
         if (!number) { toast('❌ Customer has no phone number', false); return; }
-        var tplKey = type === 'confirm' ? 'confirm' : (type === 'delivered' ? 'delivered' : 'cancel');
+        var tplKey = type === 'confirm' ? 'confirm' : (type === 'ready' ? 'ready' : (type === 'delivered' ? 'delivered' : 'cancel'));
         var msg = fillTemplate(s.tpl[tplKey], inv);
         var result = await rawSend(number, msg);
         await logAndFlag(type, inv, number, msg, result, true);
@@ -10475,7 +10496,7 @@ document.addEventListener('click', (e) => {
         pushLog({
             time: fmtEnTime(),
             iso: new Date().toISOString(),
-            type: type === 'confirm' ? 'Order Confirm' + (isManualResend?' (Resend)':'') : (type === 'delivered' ? 'Delivery Complete' + (isManualResend?' (Resend)':'') : 'Order Cancel' + (isManualResend?' (Resend)':'')),
+            type: type === 'confirm' ? 'Order Confirm' + (isManualResend?' (Resend)':'') : (type === 'ready' ? 'Ready For Delivery' + (isManualResend?' (Resend)':'') : (type === 'delivered' ? 'Delivery Complete' + (isManualResend?' (Resend)':'') : 'Order Cancel' + (isManualResend?' (Resend)':''))),
             invoiceNo: inv.invoiceNo || '',
             number: number,
             message: msg,
@@ -10491,6 +10512,7 @@ document.addEventListener('click', (e) => {
                 var fresh = await idbGetInvoice(inv.invoiceNo);
                 if (fresh) {
                     if (type === 'confirm')   fresh.confirmSmsSent  = true;
+                    if (type === 'ready')     fresh.readySmsSent    = true;
                     if (type === 'delivered') fresh.deliverySmsSent = true;
                     if (type === 'cancel')    fresh.cancelSmsSent   = true;
                     await idbSaveInvoice(fresh);
@@ -10514,6 +10536,7 @@ document.addEventListener('click', (e) => {
         var ik = document.getElementById('ak-input-apikey'); if (ik) ik.value = s.apiKey;
         var sid = document.getElementById('ak-input-senderid'); if (sid) sid.value = s.senderId;
         var tc = document.getElementById('ak-tpl-confirm'); if (tc) tc.value = s.tpl.confirm;
+        var tr = document.getElementById('ak-tpl-ready'); if (tr) tr.value = s.tpl.ready;
         var td = document.getElementById('ak-tpl-delivered'); if (td) td.value = s.tpl.delivered;
         var tx = document.getElementById('ak-tpl-cancel'); if (tx) tx.value = s.tpl.cancel;
         if (s.apiKey) {
@@ -10535,7 +10558,7 @@ document.addEventListener('click', (e) => {
             setTimeout(function(){ window.rfApiKeyRefreshBalance(); }, 150);
         }
         // Template char counters init
-        ['confirm','delivered','cancel'].forEach(function(k){ rfApiKeyCharCount('ak-tpl-' + k, 'ak-cc-' + k); });
+        ['confirm','ready','delivered','cancel'].forEach(function(k){ rfApiKeyCharCount('ak-tpl-' + k, 'ak-cc-' + k); });
         renderLog();
         // পেজ খোলার সাথে সাথে বাকি থাকা Queue (যদি কোনো কারণে আগে আটকে গিয়ে থাকে) প্রসেস করা হয়
         setTimeout(processQueue, 200);
@@ -10605,6 +10628,7 @@ document.addEventListener('click', (e) => {
     window.rfApiKeySaveTemplates = function() {
         var s = getSettings();
         s.tpl.confirm   = document.getElementById('ak-tpl-confirm').value;
+        s.tpl.ready     = document.getElementById('ak-tpl-ready').value;
         s.tpl.delivered = document.getElementById('ak-tpl-delivered').value;
         s.tpl.cancel    = document.getElementById('ak-tpl-cancel').value;
         saveSettings(s);
