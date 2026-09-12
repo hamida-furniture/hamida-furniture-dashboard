@@ -457,30 +457,90 @@
         #rf-no-access-view h2 { color: var(--navy); margin-bottom: 8px; }
         #rf-no-access-view p { max-width: 420px; font-size: 14px; color: #667; }
 
-        /* ===== Admin Panel ===== */
-        .rf-admin-user-row {
-            background: #fff; border: 1px solid #e6eaee; border-radius: 12px;
-            padding: 14px 16px; margin-bottom: 12px;
+        /* ===== Admin Panel (redesigned) ===== */
+        #rfAdminPanelModal .modal-content { padding: 0; overflow: hidden; }
+        #rfAdminPanelModal .modal-header {
+            background: linear-gradient(135deg, var(--navy) 0%, #0a2a4a 100%);
+            padding: 18px 24px; margin: 0; border-radius: 14px 14px 0 0;
         }
-        .rf-admin-user-info { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        #rfAdminPanelModal .modal-header h3 { color: #fff; display:flex; align-items:center; gap:9px; font-size:16px; }
+        #rfAdminPanelModal .modal-header .modal-close { color: rgba(255,255,255,.85); }
+        #rfAdminPanelModal .modal-header .modal-close:hover { color: #fff; }
+        #rf-admin-panel-body { padding: 18px 22px 22px; }
+        #rf-admin-panel-body > p { font-size: 12.5px; color: #667; margin: 0 0 16px; }
+        .rf-admin-danger-zone {
+            display: flex; align-items: center; justify-content: space-between; gap: 14px;
+            background: #fff7f6; border: 1.5px solid #f2b8b5; border-radius: 12px;
+            padding: 12px 16px; margin-bottom: 18px; flex-wrap: wrap;
+        }
+        .rf-admin-danger-text b { color: #c0392b; font-size: 13px; }
+        .rf-admin-danger-text p { font-size: 11.5px; color: #8a4a45; margin: 3px 0 0; max-width: 480px; }
+        .rf-admin-danger-btn {
+            border: none; border-radius: 8px; padding: 9px 16px; font-size: 12.5px; font-weight: 700;
+            cursor: pointer; background: #c0392b; color: #fff; flex-shrink: 0; transition: opacity .2s;
+        }
+        .rf-admin-danger-btn:hover { opacity: .88; }
+        body.dark-mode .rf-admin-danger-zone, body.dark-full .rf-admin-danger-zone { background: #2a1a1a; border-color: #5a2e2a; }
+        .rf-admin-user-row {
+            background: #fff; border: 1px solid #e6eaee; border-radius: 14px;
+            padding: 16px 18px; margin-bottom: 14px;
+            box-shadow: 0 1px 3px rgba(15,35,60,.05);
+            transition: box-shadow .2s, border-color .2s;
+        }
+        .rf-admin-user-row:hover { box-shadow: 0 3px 10px rgba(15,35,60,.09); }
+        .rf-admin-user-row.rf-blocked-row { border-color: #f2b8b5; background: #fff7f6; }
+        .rf-admin-user-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+        .rf-admin-user-info { display: flex; align-items: center; gap: 10px; }
+        .rf-admin-avatar {
+            width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+            background: linear-gradient(135deg, var(--teal), var(--navy));
+            color: #fff; font-weight: 700; font-size: 13.5px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .rf-blocked-row .rf-admin-avatar { background: linear-gradient(135deg, #c0392b, #7b241c); }
+        .rf-admin-user-name-wrap { display: flex; flex-direction: column; gap: 1px; }
         .rf-admin-user-name { font-weight: 700; color: var(--navy); font-size: 14px; }
-        .rf-admin-user-email { font-size: 12px; color: #888; }
+        .rf-admin-user-email { font-size: 11.5px; color: #888; }
+        .rf-admin-status-pill {
+            font-size: 10.5px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+            white-space: nowrap; letter-spacing: .2px;
+        }
+        .rf-status-active { background: #e6f7ef; color: #1f9d5c; }
+        .rf-status-blocked { background: #fbe4e2; color: #c0392b; }
         .rf-admin-perm-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 8px 12px; margin-bottom: 12px;
+            gap: 8px 12px; margin-bottom: 14px; padding: 12px; background: #f7f9fb; border-radius: 10px;
         }
         .rf-admin-perm-grid label {
             display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #444; cursor: pointer;
         }
+        .rf-admin-row-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .rf-admin-save-btn {
             border: none; border-radius: 8px; padding: 7px 16px; font-size: 12.5px; font-weight: 700;
-            cursor: pointer; background: var(--teal); color: #fff; transition: opacity .2s;
+            cursor: pointer; background: var(--teal); color: #fff; transition: opacity .2s, transform .1s;
         }
         .rf-admin-save-btn:hover { opacity: .88; }
-        .rf-admin-save-status { font-size: 11.5px; margin-left: 10px; color: #27ae60; font-weight: 600; }
+        .rf-admin-save-btn:active { transform: scale(.97); }
+        .rf-admin-block-btn {
+            border: 1.5px solid #e2b3b0; border-radius: 8px; padding: 6.5px 14px; font-size: 12.5px; font-weight: 700;
+            cursor: pointer; background: #fff; color: #c0392b; transition: background .2s, transform .1s;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .rf-admin-block-btn:hover { background: #fdecea; }
+        .rf-admin-block-btn:active { transform: scale(.97); }
+        .rf-admin-block-btn.rf-is-blocked { border-color: #a9d8c0; color: #1f9d5c; }
+        .rf-admin-block-btn.rf-is-blocked:hover { background: #eafaf1; }
+        .rf-admin-save-status { font-size: 11.5px; margin-left: 2px; color: #27ae60; font-weight: 600; }
+        .rf-admin-blocked-note {
+            font-size: 11.5px; color: #c0392b; background: #fbe4e2; border-radius: 8px;
+            padding: 6px 10px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+        }
         body.dark-mode .rf-admin-user-row, body.dark-full .rf-admin-user-row { background: #1a1f2e; border-color: #2a2f3e; }
+        body.dark-mode .rf-admin-user-row.rf-blocked-row, body.dark-full .rf-admin-user-row.rf-blocked-row { background: #2a1a1a; border-color: #5a2e2a; }
         body.dark-mode .rf-admin-user-name, body.dark-full .rf-admin-user-name { color: #eaf0f4; }
+        body.dark-mode .rf-admin-perm-grid, body.dark-full .rf-admin-perm-grid { background: #12161f; }
         body.dark-mode .rf-admin-perm-grid label, body.dark-full .rf-admin-perm-grid label { color: #c3ccd6; }
+        body.dark-mode .rf-admin-block-btn, body.dark-full .rf-admin-block-btn { background: #1a1f2e; }
 
         /* ===================== MAIN CONTENT ===================== */
         .main-content { margin-left: var(--sidebar-w); min-height: 100vh; }
@@ -512,6 +572,17 @@
         body.dark-mode .dash-range-widget input[type="date"]::-webkit-calendar-picker-indicator,
         body.dark-full .dash-range-widget input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.85); }
         .drp-arrow { color: #888; font-size: 13px; flex-shrink: 0; }
+
+        /* 🗓️ Date-mask overlay — makes every native <input type="date"> display an
+           unambiguous DD-MON-YYYY label instead of the locale-dependent numeric format */
+        .rf-date-mask-wrap { position: relative; display: inline-flex; align-items: center; vertical-align: middle; }
+        input.rf-date-masked { color: transparent !important; }
+        .rf-date-mask-label {
+            position: absolute; left: 5px; top: 50%; transform: translateY(-50%);
+            font-size: 12px; font-weight: 600; color: #222; pointer-events: none;
+            white-space: nowrap; letter-spacing: .2px;
+        }
+        body.dark-mode .rf-date-mask-label, body.dark-full .rf-date-mask-label { color: #eee; }
         .drp-clear-btn {
             display: flex; align-items: center; justify-content: center;
             width: 22px; height: 22px; border: none; border-radius: 50%;
@@ -3747,8 +3818,17 @@ body.dark-mode .ai-result-value, body.dark-full .ai-result-value { background:#2
             <h3>🛡️ Admin Panel — Manage User Access</h3>
             <span class="modal-close" onclick="closeModal('rfAdminPanelModal')">&times;</span>
         </div>
-        <p style="font-size:12.5px;color:#666;margin:-6px 0 16px;">Tick the pages each user is allowed to open, then click Save for that user. Admin accounts always have full access automatically.</p>
-        <div id="rf-admin-users-list">Loading users...</div>
+        <div id="rf-admin-panel-body">
+            <p>Tick the pages each user is allowed to open, then click Save for that user. Use "Block" to instantly sign a user out and stop them from logging in again. Admin accounts always have full access automatically.</p>
+            <div class="rf-admin-danger-zone">
+                <div class="rf-admin-danger-text">
+                    <b>⚠️ Force Fresh Start</b>
+                    <p>সব পুরনো ইনভয়েস/বাকি/কমিশন ডেটা (লোকাল + ক্লাউড) স্থায়ীভাবে মুছে দেবে এবং পরবর্তী ইনভয়েস #2700 থেকে শুরু হবে। শুধু সত্যিকারের প্রয়োজনে ব্যবহার করুন।</p>
+                </div>
+                <button class="rf-admin-danger-btn" onclick="rfForceFreshStartNow()">🧹 Reset All Data Now</button>
+            </div>
+            <div id="rf-admin-users-list">Loading users...</div>
+        </div>
     </div>
 </div>
 
@@ -4998,6 +5078,7 @@ async function renderDashboard() {
         drpFromEl.value = window.rfActiveDashRange.from;
         drpToEl.value = window.rfActiveDashRange.to;
     }
+    rfRefreshDateMasks();
 
     // ✅ যদি ইউজার আগে থেকে একটা date-range সিলেক্ট করে রেখে থাকে (custom বা ডিফল্ট এই মাসের),
     // উপরের all-time সংখ্যাগুলোর বদলে সেই range-এর হিসাবই দেখাও
@@ -5020,6 +5101,7 @@ async function renderDashboard() {
         await renderMonthlyReport(fromInput.value, toInput.value);
         toggleMrClearBtn();
     }
+    rfRefreshDateMasks();
 }
 
 // ========================================================
@@ -5031,6 +5113,62 @@ async function renderDashboard() {
 // এই একই range দিয়ে বক্সগুলো রিফ্রেশ করবে (all-time-এ ফিরে যাবে না)
 window.rfActiveDashRange = null; // { from, to } অথবা null মানে "সব সময়ের হিসাব"
 
+// 🗓️ DATE FORMAT FIX: "09/01/2026" দেখে অনেকেই confuse হচ্ছিলেন এটা "৯ তারিখ" নাকি
+// "১ তারিখ" — কারণ native <input type="date"> এর নিজস্ব সংখ্যাসূচক ফরম্যাট (MM/DD নাকি
+// DD/MM) ডিভাইসের সিস্টেম/ব্রাউজার লোকেলের উপর নির্ভর করে, যা কোড দিয়ে জোর করে বদলানো
+// যায় না। তাই এখানে প্রতিটা date input-এর নিজের ভেতরের টেক্সট অদৃশ্য (transparent) করে
+// তার উপরে "01-JAN-2026" ফরম্যাটে একটা কাস্টম লেবেল বসিয়ে দেওয়া হয়েছে — ক্যালেন্ডার
+// আইকনে ক্লিক করলে picker আগের মতোই খুলবে, শুধু দেখতে এখন সবসময় দ্ব্যর্থহীন
+// DD-MON-YYYY ফরম্যাটে দেখাবে।
+function rfDateMaskText(dateStr) {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    if (!y || !m || !d) return '';
+    const MON = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    return `${String(d).padStart(2, '0')}-${MON[m - 1]}-${y}`;
+}
+function rfInitDateMasks() {
+    document.querySelectorAll('input[type="date"]').forEach(inp => {
+        if (inp.dataset.rfMasked) return;
+        inp.dataset.rfMasked = '1';
+        inp.classList.add('rf-date-masked');
+        const wrap = document.createElement('span');
+        wrap.className = 'rf-date-mask-wrap';
+        inp.parentNode.insertBefore(wrap, inp);
+        wrap.appendChild(inp);
+        const label = document.createElement('span');
+        label.className = 'rf-date-mask-label';
+        label.textContent = rfDateMaskText(inp.value);
+        wrap.appendChild(label);
+        inp._rfMaskLabel = label;
+        inp._rfMaskLastVal = inp.value;
+        const refresh = () => {
+            inp._rfMaskLastVal = inp.value;
+            label.textContent = rfDateMaskText(inp.value);
+        };
+        inp.addEventListener('input', refresh);
+        inp.addEventListener('change', refresh);
+    });
+}
+// 🔁 date input-এর .value কোড থেকে সরাসরি সেট করা হলে (native input/change ইভেন্ট
+// চালু হয় না বলে) সেই পরিবর্তনও ধরার জন্য একটা হালকা পোলিং — মাত্র কয়েকটা date
+// input থাকায় পারফরম্যান্সে কোনো প্রভাব পড়ে না।
+function rfRefreshDateMasks() {
+    document.querySelectorAll('input[type="date"][data-rf-masked]').forEach(inp => {
+        if (inp.value !== inp._rfMaskLastVal) {
+            inp._rfMaskLastVal = inp.value;
+            if (inp._rfMaskLabel) inp._rfMaskLabel.textContent = rfDateMaskText(inp.value);
+        }
+    });
+}
+window.rfRefreshDateMasks = rfRefreshDateMasks;
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', rfInitDateMasks);
+} else {
+    rfInitDateMasks();
+}
+setInterval(rfRefreshDateMasks, 400);
+
 async function rfShowDashRangeStats() {
     const fromEl = document.getElementById('drp-from');
     const toEl = document.getElementById('drp-to');
@@ -5040,6 +5178,7 @@ async function rfShowDashRangeStats() {
     if (from > to) { alert('শুরুর তারিখ শেষের তারিখের পরে হতে পারবে না।'); return; }
 
     window.rfActiveDashRange = { from, to };
+    rfRefreshDateMasks();
     await rfApplyDashRange(from, to);
 }
 
@@ -6756,6 +6895,15 @@ async function initRahmanApp() {
     });
 
     // Load company settings
+    // 🩹 ONE-TIME NAME FIX: পুরনো "Rahman" নামে সেভ থাকা company name থাকলে
+    // এখানেই স্বয়ংক্রিয়ভাবে "Hamida Furniture" দিয়ে ঠিক করে দেওয়া হচ্ছে, যাতে UI-তে
+    // (Settings ফর্ম, ইনভয়েস হেডার ইত্যাদি) সবসময় সঠিক নামটাই দেখায়।
+    try {
+        const savedName0 = localStorage.getItem('companyName') || '';
+        if (/rahman/i.test(savedName0)) {
+            localStorage.setItem('companyName', 'Hamida Furniture');
+        }
+    } catch (e) {}
     const companyName = localStorage.getItem('companyName') || 'HAMIDA FURNITURE';
     const companyAddress = localStorage.getItem('compAddress') || 'Kodomtoli, Near Jony Tower, Keraniganj, Dhaka - 1310';
     const companyPhone = localStorage.getItem('compPhone') || '+8801349829584, +8801606484465';
@@ -9669,6 +9817,7 @@ const RF_PERM_ITEMS = [
 
 let rfIsAdmin = false;
 let rfPermissions = {};
+let rfBlocked = false;
 
 function rfIsAdminEmail(email) {
     return !!email && RF_ADMIN_EMAILS.includes(String(email).toLowerCase());
@@ -9701,6 +9850,7 @@ async function rfLoadUserAccess(user) {
     const adminMenu = document.getElementById('rf-admin-menu');
     if (rfIsAdmin) {
         rfPermissions = {};
+        rfBlocked = false; // admin accounts can never be blocked
         if (adminSection) adminSection.style.display = '';
         if (adminMenu) adminMenu.style.display = '';
     } else {
@@ -9712,19 +9862,23 @@ async function rfLoadUserAccess(user) {
             if (snap.exists()) {
                 const data = snap.data() || {};
                 rfPermissions = data.permissions || {};
+                rfBlocked = !!data.blocked;
                 setDoc(ref, { name: user.displayName || '', email: user.email || '', updatedAt: Date.now() }, { merge: true }).catch(() => {});
             } else {
                 const emptyPerm = {};
                 RF_PERM_ITEMS.forEach(i => { emptyPerm[i.key] = false; });
                 rfPermissions = emptyPerm;
-                await setDoc(ref, { name: user.displayName || '', email: user.email || '', permissions: emptyPerm, createdAt: Date.now(), updatedAt: Date.now() });
+                rfBlocked = false;
+                await setDoc(ref, { name: user.displayName || '', email: user.email || '', permissions: emptyPerm, blocked: false, createdAt: Date.now(), updatedAt: Date.now() });
             }
         } catch (e) {
             console.log('Permission load failed', e);
             rfPermissions = {};
+            rfBlocked = false;
         }
     }
     rfApplySidebarLocks();
+    return rfBlocked;
 }
 
 // 🎨 একটাই clean SVG lock icon — emoji 🔒 এর বদলে সব জায়গায় ব্যবহার হবে
@@ -9858,20 +10012,37 @@ window.rfOpenAdminPanel = async function () {
             const perms = data.permissions || {};
             const name = data.name || 'Unnamed User';
             const email = data.email || '';
+            const isBlocked = !!data.blocked;
+            const isAdminAccount = rfIsAdminEmail(email);
+            const initials = (name || email || '?').trim().charAt(0).toUpperCase();
             let checkboxes = '';
             RF_PERM_ITEMS.forEach(item => {
                 const checked = perms[item.key] ? 'checked' : '';
-                checkboxes += `<label><input type="checkbox" data-uid="${uid}" data-perm="${item.key}" ${checked}> ${item.label}</label>`;
+                const disabled = isBlocked ? 'disabled' : '';
+                checkboxes += `<label><input type="checkbox" data-uid="${uid}" data-perm="${item.key}" ${checked} ${disabled}> ${item.label}</label>`;
             });
             html += `
-                <div class="rf-admin-user-row">
-                    <div class="rf-admin-user-info">
-                        <span class="rf-admin-user-name">${name}</span>
-                        <span class="rf-admin-user-email">${email}</span>
+                <div class="rf-admin-user-row ${isBlocked ? 'rf-blocked-row' : ''}" id="rf-admin-row-${uid}">
+                    <div class="rf-admin-user-top">
+                        <div class="rf-admin-user-info">
+                            <div class="rf-admin-avatar">${initials}</div>
+                            <div class="rf-admin-user-name-wrap">
+                                <span class="rf-admin-user-name">${name}</span>
+                                <span class="rf-admin-user-email">${email}</span>
+                            </div>
+                        </div>
+                        <span class="rf-admin-status-pill ${isBlocked ? 'rf-status-blocked' : 'rf-status-active'}">${isBlocked ? '🚫 Blocked' : '✅ Active'}</span>
                     </div>
+                    ${isBlocked ? `<div class="rf-admin-blocked-note">🚫 এই ইউজার এখন সাইন-ইন করতে পারবে না — Unblock না করা পর্যন্ত অ্যাপ খুলতে/চালাতে পারবে না।</div>` : ''}
                     <div class="rf-admin-perm-grid">${checkboxes}</div>
-                    <button class="rf-admin-save-btn" onclick="rfSaveUserPermissions('${uid}', this)">💾 Save</button>
-                    <span class="rf-admin-save-status" id="rf-admin-status-${uid}"></span>
+                    <div class="rf-admin-row-actions">
+                        <button class="rf-admin-save-btn" ${isBlocked ? 'disabled' : ''} onclick="rfSaveUserPermissions('${uid}', this)">💾 Save</button>
+                        ${isAdminAccount
+                            ? `<span style="font-size:11.5px;color:#888;">Admin account — cannot be blocked</span>`
+                            : `<button class="rf-admin-block-btn ${isBlocked ? 'rf-is-blocked' : ''}" onclick="rfToggleUserBlock('${uid}', ${!isBlocked}, this)">${isBlocked ? '✅ Unblock User' : '🚫 Block User'}</button>`
+                        }
+                        <span class="rf-admin-save-status" id="rf-admin-status-${uid}"></span>
+                    </div>
                 </div>`;
         });
         listEl.innerHTML = html;
@@ -9899,6 +10070,54 @@ window.rfSaveUserPermissions = async function (uid, btnEl) {
         if (statusEl) statusEl.textContent = '❌ Failed';
     } finally {
         if (btnEl) btnEl.disabled = false;
+    }
+};
+
+// 🚫 একটা Gmail account block/unblock করার ফাংশন — block করলে সেই ইউজার পরের বার
+// লগইন করার চেষ্টা করলে (এমনকি সফল হলেও) সাথে সাথেই সাইন-আউট হয়ে যাবে এবং
+// "Blocked" বার্তা দেখবে — অ্যাপের কোনো পেজ/ডেটা একবারের জন্যও দেখতে পারবে না।
+window.rfToggleUserBlock = async function (uid, shouldBlock, btnEl) {
+    if (!rfIsAdmin) { rfShowLockedPopup('Admin Panel'); return; }
+    if (shouldBlock) {
+        const ok = confirm('আপনি কি নিশ্চিত এই ইউজারকে ব্লক করতে চান?\nব্লক করলে সে সাথে সাথেই সাইন-আউট হয়ে যাবে এবং আবার লগইন/অ্যাপ ব্যবহার করতে পারবে না — যতক্ষণ না আপনি Unblock করেন।');
+        if (!ok) return;
+    }
+    if (btnEl) btnEl.disabled = true;
+    try {
+        await setDoc(doc(db, 'company', COMPANY_ID, 'users', uid), { blocked: shouldBlock, updatedAt: Date.now() }, { merge: true });
+        rfOpenAdminPanel(); // পুরো লিস্ট রিফ্রেশ করে নতুন status/lock state দেখানো হচ্ছে
+    } catch (e) {
+        console.log('Block/unblock failed', e);
+        alert('Failed to update. Please check your connection and try again.');
+        if (btnEl) btnEl.disabled = false;
+    }
+};
+// 🧹 ম্যানুয়াল, admin-only "Force Fresh Start" — automatic one-time reset যদি কোনো
+// কারণে (যেমন আগে cloud clear silently fail করে flag ভুলভাবে "done" সেভ হয়ে গিয়ে
+// থাকে) সঠিকভাবে কাজ না করে থাকে, তাহলে এটা দিয়ে আবার নির্ভরযোগ্যভাবে রিসেট করা
+// যাবে। accidental click ঠেকাতে exact টেক্সট টাইপ করে confirm করতে হয়।
+window.rfForceFreshStartNow = async function () {
+    if (!rfIsAdmin) { rfShowLockedPopup('Admin Panel'); return; }
+    const typed = prompt('⚠️ এই কাজটি সমস্ত ইনভয়েস/বাকি/কমিশন ডেটা (লোকাল + ক্লাউড) স্থায়ীভাবে মুছে ফেলবে এবং পরবর্তী ইনভয়েস #2700 থেকে শুরু হবে — এটি Undo করা যাবে না।\n\nনিশ্চিত হলে হুবহু নিচে টাইপ করুন:\nRESET');
+    if (typed === null) return;
+    if (typed.trim() !== 'RESET') { alert('❌ টাইপ মেলেনি — কিছুই মোছা হয়নি।'); return; }
+    try {
+        await idbClear();
+        localStorage.removeItem('invoiceHistory');
+        localStorage.removeItem('salesCommissions');
+        localStorage.removeItem('rf_sheet_synced');
+        localStorage.setItem('invNum', '2700');
+
+        await window.rfClearAllInvoicesFromCloud();
+
+        await setDoc(doc(db, 'company', COMPANY_ID, 'meta', 'freshStart2700'), { done: true, at: Date.now(), by: (auth.currentUser && auth.currentUser.email) || 'admin' });
+
+        if (typeof updateDashboard === 'function') { try { updateDashboard(); } catch (e) {} }
+        if (typeof showInvoiceHistory === 'function') { try { showInvoiceHistory(); } catch (e) {} }
+        alert('✅ সম্পন্ন! সব পুরনো ইনভয়েস/বাকি/কমিশন ডেটা (লোকাল + ক্লাউড) মুছে ফেলা হয়েছে। পরবর্তী ইনভয়েস হবে #2700 থেকে।');
+    } catch (e) {
+        console.log('Force fresh start failed', e);
+        alert('❌ ব্যর্থ হয়েছে — ইন্টারনেট কানেকশন চেক করে আবার চেষ্টা করুন। (কিছু ডেটা আংশিক মোছা হতে পারে, তাই আবার একই বাটনে ক্লিক করলে বাকিটা ঠিক হয়ে যাবে।)');
     }
 };
 // ================= END ROLE-BASED ACCESS CONTROL =================
@@ -9969,13 +10188,15 @@ window.rfClearSmsLogFromCloud = async function () {
 // ✅ RESET: cloud Firestore-এ থাকা সমস্ত পুরনো ইনভয়েস (company/COMPANY_ID/invoices) মুছে
 // ফেলে fresh শুরু করার জন্য। Firebase project, backup সেটআপ, থিম — সব same থাকে,
 // শুধু ডেটা মুছে যায়।
+// 🛡️ BUG FIX: আগে এই ফাংশন নিজের ভেতরের error catch করে চুপচাপ গিলে ফেলত (rethrow
+// করতো না) — ফলে cloud থেকে delete করা fail হলেও caller (rfAutoFreshStartIfNeeded)
+// ভাবত সব ঠিকমতো মুছে গেছে, আর "done" flag সেভ করে দিত, যদিও cloud-এ আসলে পুরনো
+// ইনভয়েসগুলো তখনো রয়ে গিয়েছিল! এর ফলেই পরের যেকোনো লগইনে restoreFromCloud() সেই
+// পুরনো ডেটা আবার ফিরিয়ে আনতো। এখন error হলে সেটা caller পর্যন্ত ছড়িয়ে দেওয়া হয়
+// (rethrow), যাতে ব্যর্থ হলে flag কখনোই ভুলভাবে "done" সেভ না হয়।
 window.rfClearAllInvoicesFromCloud = async function () {
-    try {
-        const snap = await getDocs(collection(db, 'company', COMPANY_ID, 'invoices'));
-        for (const d of snap.docs) { await deleteDoc(d.ref); }
-    } catch (e) {
-        console.log('Cloud invoice clear failed', e);
-    }
+    const snap = await getDocs(collection(db, 'company', COMPANY_ID, 'invoices'));
+    for (const d of snap.docs) { await deleteDoc(d.ref); }
 };
 
 async function saveInvoiceToCloudFS(inv) {
@@ -10001,12 +10222,26 @@ async function deleteInvoiceFromCloudFS(invoiceNo) {
 // থাকে, শুধু ডেটা রিসেট হয়। একটা cloud flag (company/COMPANY_ID/meta/freshStart2700)
 // সেভ করে রাখা হয় যাতে দ্বিতীয়বার (অন্য ডিভাইস/অন্য দিন লগইন করলেও) এই রিসেট আর
 // কখনো না চলে।
+//
+// 🛡️ BUG FIX: আগে flag check বা reset কোনো কারণে (নেটওয়ার্ক/permission ইত্যাদি)
+// fail করলে এই ফাংশন false রিটার্ন করত, আর caller সেটাকে "reset দরকার নেই" ধরে
+// নিয়ে restoreFromCloud() চালিয়ে দিত — যেটা উল্টো পুরনো সব ডেটা আবার cloud থেকে
+// ফিরিয়ে আনতো! এখন থেকে তিনটা আলাদা অবস্থা রিটার্ন করা হয়: 'done' (আগেই রিসেট
+// হয়ে গেছে — এখন restore করা নিরাপদ), 'reset' (এইমাত্র রিসেট হলো — restore করার
+// দরকার নেই), 'error' (কিছু একটা fail করেছে — নিরাপত্তার জন্য restore করা হবে না,
+// যাতে ভুলবশত পুরনো ডেটা আবার ফিরে না আসে)।
 async function rfAutoFreshStartIfNeeded() {
+    let flagRef;
     try {
-        const flagRef = doc(db, 'company', COMPANY_ID, 'meta', 'freshStart2700');
+        flagRef = doc(db, 'company', COMPANY_ID, 'meta', 'freshStart2700');
         const flagSnap = await getDoc(flagRef);
-        if (flagSnap.exists() && flagSnap.data().done) return false; // আগেই একবার রিসেট হয়ে গেছে
+        if (flagSnap.exists() && flagSnap.data().done) return 'done'; // আগেই একবার রিসেট হয়ে গেছে
+    } catch (e) {
+        console.log('Fresh-start flag check failed — NOT restoring old data, for safety', e);
+        return 'error';
+    }
 
+    try {
         await idbClear();
         localStorage.removeItem('invoiceHistory');
         localStorage.removeItem('salesCommissions');
@@ -10017,10 +10252,10 @@ async function rfAutoFreshStartIfNeeded() {
 
         await setDoc(flagRef, { done: true, at: Date.now() });
         console.log('✅ Fresh start complete — next invoice will be #2700');
-        return true;
+        return 'reset';
     } catch (e) {
-        console.log('Auto fresh-start failed', e);
-        return false;
+        console.log('Auto fresh-start failed — NOT restoring old data, for safety', e);
+        return 'error';
     }
 }
 
@@ -10033,6 +10268,17 @@ async function restoreFromCloud() {
             const data = settingsSnap.data().data || {};
             Object.keys(data).forEach(k => { try { localStorage.setItem(k, data[k]); } catch (e) {} });
         }
+        // 🩹 ONE-TIME NAME FIX: পুরনো (Rahman Furniture আমলের) company name যদি এখনো
+        // localStorage/cloud settings-এ "Rahman" নামে সেভ থাকে, সেটা এখানে স্বয়ংক্রিয়ভাবে
+        // "Hamida Furniture" দিয়ে ঠিক করে দেওয়া হচ্ছে — কোড-এ থাকা fallback default তো
+        // আগেই ঠিক করা ছিল, কিন্তু ইউজারের নিজের হাতে টাইপ করা/সেভ করা পুরনো ডেটা এই ফিক্স
+        // ছাড়া পাল্টাতো না।
+        try {
+            const savedName = localStorage.getItem('companyName') || '';
+            if (/rahman/i.test(savedName)) {
+                localStorage.setItem('companyName', 'Hamida Furniture');
+            }
+        } catch (e) {}
         const invSnap = await getDocs(collection(db, 'company', COMPANY_ID, 'invoices'));
         for (const d of invSnap.docs) {
             await window.idbSaveInvoice(d.data());
@@ -10095,23 +10341,44 @@ onAuthStateChanged(auth, async (user) => {
         // পার্মানেন্টলি unlocked/visible থেকে যেত — permission শূন্য থাকা সত্ত্বেও।
         // এখন থেকে: permission load হওয়ার সাথে সাথেই enforce করা হয় (init শুরুর আগেই),
         // এবং init try/catch/finally-তে মোড়ানো — যাই ঘটুক, শেষে আবার enforce হবেই।
+        let userIsBlocked = false;
         try {
-            await rfLoadUserAccess(user);
+            userIsBlocked = await rfLoadUserAccess(user);
         } catch (e) {
             console.log('rfLoadUserAccess failed — defaulting to NO ACCESS for safety', e);
             rfIsAdmin = false;
             rfPermissions = {};
         }
+
+        // 🚫 BLOCKED USER: অ্যাডমিন এই Gmail block করে দিলে, লগইন সফল হলেও সাথে সাথেই
+        // সাইন-আউট করে দেওয়া হয় এবং কোনো পেজ/ডেটা একবারের জন্যও দেখানো হয় না —
+        // এই ইউজার আর অ্যাপ খুলতে বা চালাতে পারবে না।
+        if (userIsBlocked) {
+            userChip.style.display = 'none';
+            try { await signOut(auth); } catch (e) {}
+            showGate();
+            showError('🚫 আপনার অ্যাকাউন্টটি অ্যাডমিন কর্তৃক ব্লক করে দেওয়া হয়েছে। বিস্তারিত জানতে অ্যাডমিনের সাথে যোগাযোগ করুন।');
+            return;
+        }
+
         rfEnforceCurrentPage();
         hideGate();
 
         try {
             const syncedKey = 'rf_cloud_synced_' + user.uid;
             if (!sessionStorage.getItem(syncedKey)) {
-                const wasFreshStart = await rfAutoFreshStartIfNeeded();
-                if (!wasFreshStart) {
+                const freshResult = await rfAutoFreshStartIfNeeded();
+                if (freshResult === 'done') {
+                    // আগেই একবার রিসেট হয়ে গেছে (অন্য ডিভাইস/আগের লগইনে) — এখন নতুন
+                    // (post-reset) ডেটা cloud থেকে normally restore করা নিরাপদ।
                     await restoreFromCloud();
+                } else if (freshResult === 'error') {
+                    // flag check/reset নিজেই fail করেছে (নেটওয়ার্ক/permission ইত্যাদি) —
+                    // এই অবস্থায় restoreFromCloud() একদম চালানো হচ্ছে না, কারণ সেটা
+                    // ভুলবশত পুরনো (Rahman Furniture আমলের) ডেটা আবার ফিরিয়ে আনতে পারে।
+                    console.log('Fresh-start status unknown — skipping cloud restore this time for safety.');
                 }
+                // freshResult === 'reset' হলে কিছুই restore করার দরকার নেই, কারণ এইমাত্র সব ক্লিন করা হয়েছে।
                 sessionStorage.setItem(syncedKey, '1');
             }
             if (!_appBooted) { _appBooted = true; await initRahmanApp(); }
