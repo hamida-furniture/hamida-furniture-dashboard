@@ -6872,6 +6872,43 @@ function delResetPage() {
 // ========================================================
 // WINDOW INIT
 // ========================================================
+// ============================================================
+// 🩹 LEGACY BRANDING PURGE (Rahman Furniture নাম/ঠিকানা/ফোন যেন আর কখনো ফিরে না আসে)
+// companyName / compAddress / compPhone-এ পুরনো "Rahman Furniture" আমলের কোনো টেক্সট
+// (name-এ "rahman" শব্দ, অথবা address-এ পুরনো Siddhirganj/Narayanganj/Madaninagar ঠিকানা)
+// থেকে গেলে সেটা localStorage থেকে সরিয়ে দেওয়া হয় — এরপর কোডের নিজস্ব fallback
+// default (HAMIDA FURNITURE + নতুন address/phone) স্বয়ংক্রিয়ভাবে দেখাবে।
+// এই একই ফাংশন initRahmanApp() (প্রতি পেজ-লোডে) এবং restoreFromCloud() (প্রতিবার
+// cloud থেকে restore করার পরে) — দুই জায়গাতেই কল করা হয়, যাতে কোনোভাবেই পুরনো
+// ব্র্যান্ডিং আর ফিরে আসতে না পারে।
+function rfPurgeLegacyBranding() {
+    let purged = false;
+    try {
+        const nameV = localStorage.getItem('companyName') || '';
+        if (/rahman/i.test(nameV)) { localStorage.removeItem('companyName'); purged = true; }
+    } catch (e) {}
+    try {
+        const addrV = localStorage.getItem('compAddress') || '';
+        if (/rahman|siddhirganj|narayanganj|madaninagar/i.test(addrV)) { localStorage.removeItem('compAddress'); purged = true; }
+    } catch (e) {}
+    try {
+        const phoneV = localStorage.getItem('compPhone') || '';
+        if (/rahman/i.test(phoneV)) { localStorage.removeItem('compPhone'); purged = true; }
+    } catch (e) {}
+    // 🔁 কিছু purge হলে সাথে সাথে corrected/cleared অবস্থাটা cloud-এও push করে দাও,
+    // যাতে stale Rahman ডেটা cloud-এ পড়ে না থেকে অন্য যেকোনো device পরে আবার সেটা
+    // টেনে না আনে। (saveSettingsToCloud নিজে _restoring গার্ড চেক করে না, তাই এখানে
+    // সরাসরি কল করা নিরাপদ।)
+    if (purged) {
+        try {
+            if (typeof saveSettingsToCloud === 'function' && typeof auth !== 'undefined' && auth.currentUser) {
+                saveSettingsToCloud();
+            }
+        } catch (e) {}
+    }
+    return purged;
+}
+
 async function initRahmanApp() {
     // 🗄️ IndexedDB initialize করো
     await openIDB();
@@ -6895,15 +6932,10 @@ async function initRahmanApp() {
     });
 
     // Load company settings
-    // 🩹 ONE-TIME NAME FIX: পুরনো "Rahman" নামে সেভ থাকা company name থাকলে
-    // এখানেই স্বয়ংক্রিয়ভাবে "Hamida Furniture" দিয়ে ঠিক করে দেওয়া হচ্ছে, যাতে UI-তে
-    // (Settings ফর্ম, ইনভয়েস হেডার ইত্যাদি) সবসময় সঠিক নামটাই দেখায়।
-    try {
-        const savedName0 = localStorage.getItem('companyName') || '';
-        if (/rahman/i.test(savedName0)) {
-            localStorage.setItem('companyName', 'Hamida Furniture');
-        }
-    } catch (e) {}
+    // 🩹 LEGACY BRANDING PURGE: পুরনো "Rahman Furniture" আমলের company name/address/phone
+    // যদি এখনো localStorage-এ সেভ থাকে, সেটা এখানে মুছে দেওয়া হচ্ছে যাতে নিচের
+    // fallback default (HAMIDA FURNITURE / নতুন address-phone) সবসময় দেখায়।
+    rfPurgeLegacyBranding();
     const companyName = localStorage.getItem('companyName') || 'HAMIDA FURNITURE';
     const companyAddress = localStorage.getItem('compAddress') || 'Kodomtoli, Near Jony Tower, Keraniganj, Dhaka - 1310';
     const companyPhone = localStorage.getItem('compPhone') || '+8801349829584, +8801606484465';
@@ -10266,19 +10298,28 @@ async function restoreFromCloud() {
         const settingsSnap = await getDoc(doc(db, 'company', COMPANY_ID, 'meta', 'settings'));
         if (settingsSnap.exists()) {
             const data = settingsSnap.data().data || {};
-            Object.keys(data).forEach(k => { try { localStorage.setItem(k, data[k]); } catch (e) {} });
+            // 🛡️ SELECTIVE FIX: companyName/compAddress/compPhone-এর cloud value যদি এখনো
+            // পুরনো "Rahman Furniture" আমলের হয় (নাম/ঠিকানায় rahman/Siddhirganj/
+            // Narayanganj/Madaninagar থাকলে), শুধু সেই একটা stale value-টাই বাদ দিয়ে বাকি
+            // সব normal-ভাবে sync হয় — invoiceLogo সহ। এতে নতুন সঠিক logo/name/address/
+            // phone আগের মতোই সব device-এ auto-sync হবে (একবার কোনো এক device থেকে সঠিক
+            // মান সেভ হলেই), শুধু পুরনো Rahman ডেটা আর কখনো ফিরে আসবে না।
+            const RF_LEGACY_TEST = {
+                companyName: /rahman/i,
+                compAddress: /rahman|siddhirganj|narayanganj|madaninagar/i,
+                compPhone:   /rahman/i
+            };
+            Object.keys(data).forEach(k => {
+                const test = RF_LEGACY_TEST[k];
+                if (test && test.test(data[k] || '')) return; // stale Rahman-era value — skip, don't overwrite local
+                try { localStorage.setItem(k, data[k]); } catch (e) {}
+            });
         }
-        // 🩹 ONE-TIME NAME FIX: পুরনো (Rahman Furniture আমলের) company name যদি এখনো
-        // localStorage/cloud settings-এ "Rahman" নামে সেভ থাকে, সেটা এখানে স্বয়ংক্রিয়ভাবে
-        // "Hamida Furniture" দিয়ে ঠিক করে দেওয়া হচ্ছে — কোড-এ থাকা fallback default তো
-        // আগেই ঠিক করা ছিল, কিন্তু ইউজারের নিজের হাতে টাইপ করা/সেভ করা পুরনো ডেটা এই ফিক্স
-        // ছাড়া পাল্টাতো না।
-        try {
-            const savedName = localStorage.getItem('companyName') || '';
-            if (/rahman/i.test(savedName)) {
-                localStorage.setItem('companyName', 'Hamida Furniture');
-            }
-        } catch (e) {}
+        // 🩹 LEGACY BRANDING PURGE: এই ডিভাইসে ইতিমধ্যে সেভ থাকা companyName/compAddress/
+        // compPhone-এ যদি এখনো পুরনো "Rahman Furniture" আমলের কিছু থেকে থাকে, সেটাও
+        // এখানে মুছে দেওয়া হচ্ছে এবং cloud-এও push করে দেওয়া হচ্ছে (দেখুন
+        // rfPurgeLegacyBranding() ফাংশন)।
+        rfPurgeLegacyBranding();
         const invSnap = await getDocs(collection(db, 'company', COMPANY_ID, 'invoices'));
         for (const d of invSnap.docs) {
             await window.idbSaveInvoice(d.data());
