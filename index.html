@@ -6893,7 +6893,28 @@ function rfPurgeLegacyBranding() {
     } catch (e) {}
     try {
         const phoneV = localStorage.getItem('compPhone') || '';
-        if (/rahman/i.test(phoneV)) { localStorage.removeItem('compPhone'); purged = true; }
+        // পুরনো Rahman Furniture আমলের ফোন নম্বরটা (01794526688, dash/space সহ যেকোনো
+        // ফরম্যাটে) সরাসরি চিনে নিয়ে পরিষ্কার করা হচ্ছে — শুধু "rahman" শব্দ খোঁজাই যথেষ্ট
+        // ছিল না, কারণ নম্বরে তো "rahman" শব্দ থাকে না।
+        if (/rahman/i.test(phoneV) || /01794[\s-]*526[\s-]*688/.test(phoneV)) {
+            localStorage.removeItem('compPhone');
+            purged = true;
+        }
+    } catch (e) {}
+    // 🩹 ONE-TIME LOGO MIGRATION: companyName/compAddress টেক্সট-প্যাটার্ন দিয়ে চেনা গেলেও,
+    // invoiceLogo একটা base64 ছবি — এর ভেতরে "rahman" লেখা খুঁজে পুরনো লোগো চেনা সম্ভব না।
+    // তাই একবারই (rfBrandMigrationV2 flag না থাকলে) invoiceLogo জোর করে মুছে দেওয়া হচ্ছে,
+    // যাতে পুরনো Rahman লোগো (locally অথবা stale cloud copy-তে যা-ই থাকুক) স্থায়ীভাবে
+    // সরে যায়। এরপর একবার নতুন সঠিক লোগো আপলোড করলেই সেটা সব device-এ normal-ভাবে
+    // sync হতে থাকবে (এই ফাংশনের নিচের cloud-push অংশ সহ)।
+    try {
+        if (!localStorage.getItem('rfBrandMigrationV2')) {
+            if (localStorage.getItem('invoiceLogo')) {
+                localStorage.removeItem('invoiceLogo');
+                purged = true;
+            }
+            localStorage.setItem('rfBrandMigrationV2', '1');
+        }
     } catch (e) {}
     // 🔁 কিছু purge হলে সাথে সাথে corrected/cleared অবস্থাটা cloud-এও push করে দাও,
     // যাতে stale Rahman ডেটা cloud-এ পড়ে না থেকে অন্য যেকোনো device পরে আবার সেটা
@@ -10307,7 +10328,7 @@ async function restoreFromCloud() {
             const RF_LEGACY_TEST = {
                 companyName: /rahman/i,
                 compAddress: /rahman|siddhirganj|narayanganj|madaninagar/i,
-                compPhone:   /rahman/i
+                compPhone:   /rahman|01794[\s-]*526[\s-]*688/i
             };
             Object.keys(data).forEach(k => {
                 const test = RF_LEGACY_TEST[k];
