@@ -851,7 +851,7 @@
         /* Invoice A4 Page */
         .inv-a4-page {
             width: 210mm; min-height: 296mm; padding: 10mm 12mm; margin: 10px auto;
-            background: white; position: relative; border: 1px solid #ddd;
+            background: #ffffff; position: relative; border: 1px solid #ddd;
             font-family: 'Times New Roman', 'Tiro Bangla', serif;
         }
         #inv-watermark {
@@ -1051,7 +1051,11 @@
             .main-content { margin-left: 0; }
 
             /* Invoice print */
-            .inv-a4-page { margin: 0; border: none; height: 297mm; width: 210mm; padding: 10mm; page-break-inside: avoid; }
+            .inv-a4-page { margin: 0; border: none; height: auto; min-height: 0 !important; max-height: none; width: 210mm; padding: 10mm; page-break-after: avoid; break-after: avoid; box-shadow: none !important; background: #ffffff !important; animation: none !important; transform: none !important; opacity: 1 !important; filter: none !important; }
+            html, body { background: #ffffff !important; background-image: none !important; height: auto !important; margin: 0 !important; padding: 0 !important; }
+            .main-content { min-height: 0 !important; }
+            #invoice-view, #invoice-view.active { min-height: 0 !important; padding: 0 !important; background: #ffffff !important; }
+            .ai-assist-banner { display: none !important; }
             ::placeholder { color: transparent !important; }
             ::-webkit-input-placeholder { color: transparent !important; }
             .photo-box { border: none !important; background: transparent !important; display: flex !important; }
@@ -4139,6 +4143,30 @@ async function idbSaveInvoice(inv) {
     });
 }
 
+// ⚡ একাধিক invoice এক transaction-এ save/delete (cloud wrapper-কে ট্রিগার না করে — loop এড়াতে)
+window.rfIdbPutMany = async function (list) {
+    if (!list || !list.length) return;
+    const db = await openIDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        const st = tx.objectStore(IDB_STORE);
+        list.forEach(inv => st.put(inv));
+        tx.oncomplete = resolve;
+        tx.onerror = reject;
+    });
+};
+window.rfIdbDeleteMany = async function (keys) {
+    if (!keys || !keys.length) return;
+    const db = await openIDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        const st = tx.objectStore(IDB_STORE);
+        keys.forEach(k => st.delete(k));
+        tx.oncomplete = resolve;
+        tx.onerror = reject;
+    });
+};
+
 async function idbGetInvoice(invoiceNo) {
     const db = await openIDB();
     return new Promise((resolve, reject) => {
@@ -4518,19 +4546,21 @@ async function loadCloudData() {
                     const localH = await getAllInvoices();
                     const merged = [...cloudH];
                     localH.forEach(li => { if (!merged.find(ci => ci.invoiceNo === li.invoiceNo)) merged.push(li); });
-                    // Save merged back to IDB (preserving local photos)
+                    // Save merged back to IDB (preserving local photos) — ⚡ একটাই transaction-এ batch
+                    const _have = new Set(localH.map(x => String(x.invoiceNo)));
+                    const _toAdd = [];
                     for (const inv of merged) {
-                        const existing = await idbGetInvoice(inv.invoiceNo);
-                        if (!existing) {
+                        if (!_have.has(String(inv.invoiceNo))) {
                             // ✅ পুরানো invoice-এ savedDate না থাকলে date field থেকে বানিয়ে নাও
                             if (!inv.savedDate && inv.date) {
                                 const isoDate = invoiceToISODate(inv);
                                 if (isoDate) inv.savedDate = isoDate + 'T00:00:00.000Z';
                             }
-                            await idbSaveInvoice(inv);
+                            _toAdd.push(inv);
                         }
                         // If local already has it (with photos), keep local version
                     }
+                    if (_toAdd.length) await window.rfIdbPutMany(_toAdd);
                 } catch(e) {}
             }
             // ✅ Cloud merge শেষ হওয়ার পর — এখন IndexedDB-ই সঠিক/আসল source, তাই
@@ -5004,6 +5034,7 @@ async function renderDashboard() {
     const history = await getAllInvoices();
     const tbody = document.getElementById('dashboard-tbody');
     tbody.innerHTML = '';
+    const _rowsHtml = []; // ⚡ আগে প্রতি লাইনে innerHTML += হতো (ধীর) — এখন একবারেই বসে
 
     let totalSales = 0, totalCollected = 0, totalDue = 0, pending = 0, cancelled = 0;
 
@@ -5031,7 +5062,7 @@ async function renderDashboard() {
         };
         const cls = statusMap[inv.deliveryStatus] || 'processing';
 
-        tbody.innerHTML += `<tr>
+        _rowsHtml.push(`<tr>
             <td>${idx + 1}</td>
             <td>${inv.date || '—'}</td>
             <td>${inv.salesman || '—'}</td>
@@ -5048,8 +5079,9 @@ async function renderDashboard() {
                 </select>
             </td>
             <td><span class="view-btn" onclick="showDeliveryDetail('${inv.invoiceNo}')">View Details</span></td>
-        </tr>`;
+        </tr>`);
     });
+    tbody.innerHTML = _rowsHtml.join('');
 
     if (history.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#aaa;">No invoices yet. Create one!</td></tr>';
@@ -6026,17 +6058,43 @@ function invUploadLogo(input) {
     if(input.files[0]) reader.readAsDataURL(input.files[0]);
 }
 
+// 🤍 Watermark-এর logo-তে যদি সাদা/অফ-হোয়াইট ব্যাকগ্রাউন্ড থাকে, 12% opacity-তে সেটা পুরো পেজকে
+// অফ-হোয়াইট দেখায়। তাই watermark বানানোর সময় near-white pixel গুলো transparent করে দেওয়া হয়।
+function rfMakeCleanWatermark(src, cb) {
+    try {
+        const im = new Image();
+        im.onload = function () {
+            try {
+                const maxW = 900, sc = Math.min(1, maxW / (im.naturalWidth || maxW));
+                const w = Math.max(1, Math.round((im.naturalWidth || 1) * sc)), h = Math.max(1, Math.round((im.naturalHeight || 1) * sc));
+                const c = document.createElement('canvas'); c.width = w; c.height = h;
+                const x = c.getContext('2d'); x.drawImage(im, 0, 0, w, h);
+                const d = x.getImageData(0, 0, w, h), a = d.data;
+                for (let i = 0; i < a.length; i += 4) {
+                    if (a[i] > 225 && a[i+1] > 225 && a[i+2] > 225) a[i+3] = 0;
+                }
+                x.putImageData(d, 0, 0);
+                cb(c.toDataURL('image/png'));
+            } catch (e) { cb(src); }
+        };
+        im.onerror = function () { cb(src); };
+        im.src = src;
+    } catch (e) { cb(src); }
+}
+
 function invApplyLogo(src) {
     document.getElementById('inv-logoText').style.display = 'none';
     document.getElementById('inv-main-logo').src = src;
     document.getElementById('inv-main-logo').style.display = 'block';
-    document.getElementById('inv-watermark').src = src;
-    document.getElementById('inv-watermark').style.display = 'block';
+    const wm = document.getElementById('inv-watermark');
+    wm.src = src;
+    wm.style.display = 'block';
+    rfMakeCleanWatermark(src, function (clean) { wm.src = clean; });
     // Also apply to delivery
     const delLogo = document.getElementById('del-logo');
     const delWm = document.getElementById('del-watermark');
     if(delLogo){ delLogo.src=src; delLogo.style.display='block'; }
-    if(delWm){ delWm.src=src; }
+    if(delWm){ delWm.src=src; rfMakeCleanWatermark(src, function (clean) { delWm.src = clean; }); }
 }
 
 function triggerFile(box) {
@@ -6142,8 +6200,43 @@ function handleRowNameInput(input) {
 // ⏎ Qty/Rate ফিল্ডে Enter চাপলেও নতুন লাইন আসবে (স্ক্যান করে item match হলে
 // আগে সরাসরি Qty-তে focus যেত কিন্তু নতুন row আসতো না — এখন qty/rate বসিয়ে
 // Enter চাপলেই পরের item স্ক্যান/টাইপ করার জন্য নতুন row রেডি হয়ে যাবে)
+// 📱 মোবাইল কীবোর্ডে (Gboard/Samsung) Enter চাপলে অনেক সময় event.key === 'Enter' আসে না
+// (key 'Unidentified' / keyCode 229 আসে) — তাই key, keyCode, which, code সব চেক করা হচ্ছে।
+// keydown + keypress + keyup তিনটাতেই ধরা হয়, আর ৩০০ms-এর মধ্যে ডবল row আসা আটকানো হয়।
+function rfIsEnterEvent(e) {
+    return e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter' || e.keyCode === 13 || e.which === 13 || e.charCode === 13;
+}
+function rfEnterOnce(e, el) {
+    if (!rfIsEnterEvent(e)) return false;
+    const now = Date.now();
+    if (window._rfLastEnterAt && now - window._rfLastEnterAt < 300) { e.preventDefault(); return false; }
+    window._rfLastEnterAt = now;
+    return true;
+}
+document.addEventListener('keyup', function (e) {
+    const t = e.target;
+    if (!t || !t.closest || !t.closest('#item-tbody') || t.tagName !== 'INPUT') return;
+    if (!rfIsEnterEvent(e)) return;
+    if (window._rfLastEnterAt && Date.now() - window._rfLastEnterAt < 300) return; // keydown ইতিমধ্যে handle করেছে
+    if (t.classList.contains('qty') || t.classList.contains('rate')) handleQtyRateKeys(e, t);
+    else handleRowKeys(e, t);
+}, true);
+document.addEventListener('keypress', function (e) {
+    const t = e.target;
+    if (!t || !t.closest || !t.closest('#item-tbody') || t.tagName !== 'INPUT') return;
+    if (!rfIsEnterEvent(e)) return;
+    if (window._rfLastEnterAt && Date.now() - window._rfLastEnterAt < 300) return;
+    if (t.classList.contains('qty') || t.classList.contains('rate')) handleQtyRateKeys(e, t);
+    else handleRowKeys(e, t);
+}, true);
+// কীবোর্ডে "Next/Enter" বাটন দেখানোর জন্য
+document.addEventListener('focusin', function (e) {
+    const t = e.target;
+    if (t && t.tagName === 'INPUT' && t.closest && t.closest('#item-tbody')) t.setAttribute('enterkeyhint', 'next');
+}, true);
+
 function handleQtyRateKeys(event, input) {
-    if (event.key !== 'Enter') return;
+    if (!rfEnterOnce(event, input)) return;
     event.preventDefault();
     const tbody = document.getElementById('item-tbody');
     const row = input.closest('tr');
@@ -6159,7 +6252,7 @@ function handleQtyRateKeys(event, input) {
 }
 
 function handleRowKeys(event, input) {
-    if (event.key === 'Enter') {
+    if (rfEnterOnce(event, input)) {
         event.preventDefault();
         const row = input.closest('tr');
         const text = input.value.trim();
@@ -6972,29 +7065,27 @@ async function initRahmanApp() {
     const savedAdmin = localStorage.getItem('adminName');
     if(savedAdmin) document.getElementById('inv-admin-name').value = savedAdmin;
 
-    // ☁️ Try loading from cloud first (if URL configured)
-    await loadCloudData();
-
-    // Load invoice number — সবসময় আসল invoice history (cloud merge হওয়ার পর) থেকে হিসাব করা হয়,
-    // কোনো stale local/cloud কাউন্টারের উপর ভরসা করা হয় না — এতে ulta-palta নাম্বার আসার বাগটা ফিক্স হয়
+    // ⚡ SPEED: আগে এখানে Google Sheet cloud load শেষ হওয়া পর্যন্ত অপেক্ষা করা হতো (ধীর)।
+    // এখন লোকাল ডেটা দিয়ে সাথে সাথে invoice নম্বর + dashboard দেখানো হয়, আর cloud sync পেছনে চলে।
+    // Load invoice number — সবসময় আসল invoice history থেকে হিসাব করা হয়
     const inv = await rfGetNextInvoiceNo();
     document.getElementById('inv-no').innerText = inv;
 
-    // Auto-sync: local-এ data থাকলে cloud-এ পাঠিয়ে দাও
-    const localHistory = await getAllInvoices();
-    if (localHistory.length > 0) {
-        saveCloudData();
-    }
-
-    // 🔄 ব্যর্থ sync retry করো (background-এ)
-    setTimeout(() => processSyncRetryQueue(), 3000);
-
     // 🛡️ SECURITY FIX: dashboard-এর real business data DOM-এ বসানোর আগেই permission check করো।
-    // আগে এটা সব সময় (permission ছাড়াও) call হতো, ফলে data হিডেন view-এর ভেতরে থাকলেও
-    // browser dev-tools দিয়ে trivially বের করা যেত। এখন শুধু allowed হলেই render হবে।
     if (typeof rfHasPermission !== 'function' || rfHasPermission('dashboard')) {
         renderDashboard();
     }
+
+    // ☁️ Background: Google Sheet থেকে merge → তারপর local data cloud-এ পাঠানো
+    loadCloudData().then(async function () {
+        try {
+            const localHistory = await getAllInvoices();
+            if (localHistory.length > 0) saveCloudData();
+        } catch (e) {}
+    }).catch(function () {});
+
+    // 🔄 ব্যর্থ sync retry করো (background-এ)
+    setTimeout(() => processSyncRetryQueue(), 3000);
 
     // Apply dark mode button state
     updateThemeBtns(localStorage.getItem('rfTheme') || 'light');
@@ -9615,7 +9706,7 @@ import {
     onAuthStateChanged, setPersistence, browserSessionPersistence, sendPasswordResetEmail, updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-    getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs
+    getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ============================================================
@@ -10193,6 +10284,9 @@ async function saveSettingsToCloud() {
             // past Firestore's 1MB per-document limit — the write would then fail silently
             // (caught below) and the cloud copy would be stale/incomplete.
             if (k === 'rfSmsLog' || k === 'rfSmsQueue') continue;
+            // 🔒 SMS settings/template এখন নিজস্ব Firestore doc-এ (meta/smsSettings) — এই blob-এ রাখলে
+            // অন্য ডিভাইসের পুরনো কপি দিয়ে নতুন template ওভাররাইট হয়ে যেত (এটাই ছিল bug)।
+            if (k === 'rfSmsSettings') continue;
             data[k] = localStorage.getItem(k);
         }
         await setDoc(doc(db, 'company', COMPANY_ID, 'meta', 'settings'), { data, updatedAt: Date.now() });
@@ -10252,13 +10346,143 @@ window.rfClearAllInvoicesFromCloud = async function () {
     for (const d of snap.docs) { await deleteDoc(d.ref); }
 };
 
+
+// ============================================================
+// ⚡ REALTIME SYNC (সব ডিভাইসে সাথে সাথে আপডেট) + 📩 SMS SETTINGS SYNC
+// ============================================================
+let _rfInvUnsub = null, _rfSmsUnsub = null, _rfDashTimer = null;
+
+function _rfRefreshAfterSync() {
+    clearTimeout(_rfDashTimer);
+    _rfDashTimer = setTimeout(async function tick() {
+        // ইউজার এখন status dropdown/ইনপুটে কাজ করলে একটু পরে আবার চেষ্টা
+        const ae = document.activeElement;
+        if (ae && ae.closest && ae.closest('#dashboard-view') && (ae.tagName === 'SELECT' || ae.tagName === 'INPUT')) {
+            _rfDashTimer = setTimeout(tick, 1500); return;
+        }
+        try {
+            const dv = document.getElementById('dashboard-view');
+            if (dv && typeof renderDashboard === 'function' && (typeof rfHasPermission !== 'function' || rfHasPermission('dashboard'))) {
+                await renderDashboard();
+            }
+            // অন্য ডিভাইসে নতুন invoice হলে এই ডিভাইসের খালি ফর্মের নম্বর আপডেট (duplicate নম্বর এড়াতে)
+            if (!window.rfEditingInvoiceNo) {
+                const el = document.getElementById('inv-no');
+                if (el) {
+                    const cur = parseInt(el.innerText, 10);
+                    const all = await getAllInvoices();
+                    let mx = 2699;
+                    all.forEach(i => { const n = parseInt(String(i.invoiceNo).replace(/[^0-9]/g, ''), 10); if (!isNaN(n) && n > mx) mx = n; });
+                    if (isNaN(cur) || cur <= mx) { const nx = await rfGetNextInvoiceNo(); el.innerText = nx; }
+                }
+            }
+        } catch (e) { console.log('post-sync refresh failed', e); }
+    }, 400);
+}
+
+window.rfStartRealtimeSync = function () {
+    if (_rfInvUnsub) return;
+    try {
+        _rfInvUnsub = onSnapshot(collection(db, 'company', COMPANY_ID, 'invoices'), async (snap) => {
+            try {
+                const toPut = [], toDel = [];
+                const localMap = {};
+                if (snap.docChanges().length) {
+                    (await getAllInvoices()).forEach(i => { localMap[String(i.invoiceNo)] = i; });
+                }
+                snap.docChanges().forEach(ch => {
+                    if (ch.doc.metadata.hasPendingWrites) return; // এই ডিভাইসেরই নিজের লেখা — skip
+                    const d = ch.doc.data();
+                    if (ch.type === 'removed') { toDel.push(d.invoiceNo); return; }
+                    const loc = localMap[String(d.invoiceNo)];
+                    // cloud-এ ছবি বাদ (বড় হওয়ায়) থাকলে লোকালের ছবি রেখে দাও
+                    if (loc && (!d.photos || !d.photos.length) && loc.photos && loc.photos.length) d.photos = loc.photos;
+                    if (loc && JSON.stringify(loc) === JSON.stringify(d)) return;
+                    toPut.push(d);
+                });
+                if (toPut.length) await window.rfIdbPutMany(toPut);
+                if (toDel.length) await window.rfIdbDeleteMany(toDel);
+                if (toPut.length || toDel.length) _rfRefreshAfterSync();
+            } catch (e) { console.log('Realtime invoice sync failed', e); }
+        }, (err) => { console.log('Invoice listener error', err); _rfInvUnsub = null; });
+    } catch (e) { console.log('Realtime start failed', e); }
+};
+
+// ---- SMS settings (templates, API key, provider...) — নিজস্ব doc, last-write-wins শুধু এই একটা জিনিসের উপর ----
+const _rfSmsRef = () => doc(db, 'company', COMPANY_ID, 'meta', 'smsSettings');
+
+window.rfSaveSmsSettingsToCloud = async function (settingsObj) {
+    if (!auth.currentUser) return;
+    try {
+        await setDoc(_rfSmsRef(), { data: JSON.stringify(settingsObj), updatedAt: settingsObj.updatedAt || Date.now() });
+    } catch (e) {
+        console.log('SMS settings cloud save failed', e);
+        try { if (typeof toast === 'function') toast('⚠️ Template cloud-এ save হয়নি (Firestore rules/নেটওয়ার্ক চেক করুন) — শুধু এই ডিভাইসে আছে', false); } catch (_) {}
+    }
+};
+
+function _rfApplyCloudSms(cloud) {
+    try {
+        if (!cloud || !cloud.data) return false;
+        const cs = JSON.parse(cloud.data);
+        let ls = {};
+        try { ls = JSON.parse(localStorage.getItem('rfSmsSettings') || '{}'); } catch (e) {}
+        if ((cs.updatedAt || cloud.updatedAt || 0) <= (ls.updatedAt || 0)) return false; // লোকালই নতুন/সমান
+        localStorage.setItem('rfSmsSettings', JSON.stringify(cs));
+        // API Key পেজ খোলা থাকলে টেমপ্লেট বক্সগুলো আপডেট (টাইপ করার সময় বাদে)
+        const map = { confirm: 'ak-tpl-confirm', ready: 'ak-tpl-ready', delivered: 'ak-tpl-delivered', cancel: 'ak-tpl-cancel' };
+        Object.keys(map).forEach(k => {
+            const el = document.getElementById(map[k]);
+            if (el && cs.tpl && cs.tpl[k] && document.activeElement !== el) el.value = cs.tpl[k];
+        });
+        return true;
+    } catch (e) { return false; }
+}
+
+window.rfStartSmsSettingsSync = async function () {
+    if (_rfSmsUnsub) return;
+    try {
+        const snap = await getDoc(_rfSmsRef());
+        if (snap.exists()) {
+            _rfApplyCloudSms(snap.data());
+        } else {
+            // প্রথমবার: পুরনো blob বা এই ডিভাইসের লোকাল সেটিংস থেকে cloud-এ তুলে দাও
+            let src = localStorage.getItem('rfSmsSettings') || window._rfLegacySmsBlob || '';
+            if (src) {
+                try {
+                    const o = JSON.parse(src); o.updatedAt = o.updatedAt || Date.now();
+                    localStorage.setItem('rfSmsSettings', JSON.stringify(o));
+                    await window.rfSaveSmsSettingsToCloud(o);
+                } catch (e) {}
+            }
+        }
+        _rfSmsUnsub = onSnapshot(_rfSmsRef(), (s) => {
+            if (!s.exists() || s.metadata.hasPendingWrites) return;
+            _rfApplyCloudSms(s.data());
+        }, () => { _rfSmsUnsub = null; });
+    } catch (e) { console.log('SMS settings sync start failed', e); }
+};
+
+window.rfStopSync = function () {
+    try { if (_rfInvUnsub) _rfInvUnsub(); } catch (e) {}
+    try { if (_rfSmsUnsub) _rfSmsUnsub(); } catch (e) {}
+    _rfInvUnsub = null; _rfSmsUnsub = null;
+};
+
+// ☁️ ছবি বড় হওয়ায় cloud save fail করলে ছবি বাদ দিয়ে আবার চেষ্টা (যাতে অন্তত invoice সব ডিভাইসে যায়)
 async function saveInvoiceToCloudFS(inv) {
     try {
         await setDoc(doc(db, 'company', COMPANY_ID, 'invoices', String(inv.invoiceNo)), inv);
         setSyncBadge('✅ ইনভয়েস সংরক্ষিত');
     } catch (e) {
-        console.log('Cloud invoice save failed', e);
-        setSyncBadge('⚠️ ছবি বড় হওয়ায় সিঙ্ক ব্যর্থ');
+        console.log('Cloud invoice save failed, retrying without photos', e);
+        try {
+            await setDoc(doc(db, 'company', COMPANY_ID, 'invoices', String(inv.invoiceNo)), Object.assign({}, inv, { photos: [] }));
+            setSyncBadge('✅ ইনভয়েস সংরক্ষিত (ছবি ছাড়া)');
+        } catch (e2) {
+            console.log('Cloud invoice save failed', e2);
+            setSyncBadge('⚠️ সিঙ্ক ব্যর্থ');
+        }
     }
 }
 
@@ -10331,6 +10555,7 @@ async function restoreFromCloud() {
                 compPhone:   /rahman|01794[\s-]*526[\s-]*688/i
             };
             Object.keys(data).forEach(k => {
+                if (k === 'rfSmsSettings') { window._rfLegacySmsBlob = data[k]; return; } // নিচে আলাদা sync হয়
                 const test = RF_LEGACY_TEST[k];
                 if (test && test.test(data[k] || '')) return; // stale Rahman-era value — skip, don't overwrite local
                 try { localStorage.setItem(k, data[k]); } catch (e) {}
@@ -10341,10 +10566,8 @@ async function restoreFromCloud() {
         // এখানে মুছে দেওয়া হচ্ছে এবং cloud-এও push করে দেওয়া হচ্ছে (দেখুন
         // rfPurgeLegacyBranding() ফাংশন)।
         rfPurgeLegacyBranding();
-        const invSnap = await getDocs(collection(db, 'company', COMPANY_ID, 'invoices'));
-        for (const d of invSnap.docs) {
-            await window.idbSaveInvoice(d.data());
-        }
+        // ⚡ invoice গুলো আর এখানে এক-এক করে (ধীরে) আনা হয় না — realtime listener (rfStartRealtimeSync)
+        // সব ডিভাইসে ব্যাচে আনে এবং পরের পরিবর্তনও সাথে সাথে পাঠায়।
         // SMS log: MERGE cloud entries into the local log — never overwrite. The old code restored
         // rfSmsLog as part of the single settings blob above, which replaced today's local entries
         // with whatever (possibly older/incomplete) copy was last saved to the cloud.
@@ -10442,7 +10665,12 @@ onAuthStateChanged(auth, async (user) => {
                 }
                 // freshResult === 'reset' হলে কিছুই restore করার দরকার নেই, কারণ এইমাত্র সব ক্লিন করা হয়েছে।
                 sessionStorage.setItem(syncedKey, '1');
+                if (freshResult !== 'error') sessionStorage.setItem('rf_inv_sync_ok_' + user.uid, '1');
             }
+            // 📩 SMS template/settings সব ডিভাইসে sync (background)
+            window.rfStartSmsSettingsSync();
+            // ⚡ invoice realtime sync (শুধু fresh-start check ঠিকঠাক হলে — পুরনো ডেটা ফিরে আসা আটকাতে)
+            if (sessionStorage.getItem('rf_inv_sync_ok_' + user.uid)) window.rfStartRealtimeSync();
             if (!_appBooted) { _appBooted = true; await initRahmanApp(); }
         } catch (e) {
             console.log('App init failed', e);
@@ -10452,6 +10680,7 @@ onAuthStateChanged(auth, async (user) => {
             rfEnforceCurrentPage();
         }
     } else {
+        try { window.rfStopSync && window.rfStopSync(); } catch (e) {}
         userChip.style.display = 'none';
         userChip.classList.remove('rf-open');
         showGate();
@@ -10507,6 +10736,7 @@ document.addEventListener('click', (e) => {
                 apiKey:   s.apiKey   || '',
                 senderId: s.senderId || '',
                 enabled:  !!s.enabled,
+                updatedAt: s.updatedAt || 0,
                 lastBalance: (s.lastBalance !== undefined) ? s.lastBalance : null,
                 tpl: {
                     confirm:   (s.tpl && s.tpl.confirm)   || DEFAULT_TPL.confirm,
@@ -10518,7 +10748,10 @@ document.addEventListener('click', (e) => {
         } catch(e) { return { provider:'bulksmsbd', apiKey:'', senderId:'', enabled:false, lastBalance:null, tpl: DEFAULT_TPL }; }
     }
     function saveSettings(s) {
+        s.updatedAt = Date.now();
         try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch(e) {}
+        // ☁️ সাথে সাথে নিজস্ব cloud doc-এ (debounce/পুরো-blob ছাড়া) — যাতে অন্য ডিভাইস/রিলোডে পুরনো template না ফেরে
+        try { if (window.rfSaveSmsSettingsToCloud) window.rfSaveSmsSettingsToCloud(s); } catch(e) {}
     }
     function getLog() {
         try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch(e) { return []; }
@@ -11418,6 +11651,40 @@ document.addEventListener('click', (e) => {
 
     // পেজ লোড হওয়ার সাথে সাথে বাকি থাকা SMS Queue ব্যাকগ্রাউন্ডে (নন-ব্লকিং) প্রসেস হবে
     setTimeout(processQueue, 1500);
+})();
+</script>
+<script>
+/* ===== Invoice print: কনটেন্ট বেশি হলেও সবসময় ১ A4 পেজে ফিট করে ===== */
+(function(){
+  var MM=96/25.4, TARGET=294*MM; /* A4 = 297mm, ৩mm safety */
+  function fitInvoice(){
+    try{
+      var v=document.getElementById('invoice-view');
+      var el=document.querySelector('.inv-a4-page');
+      if(!v||!el||getComputedStyle(v).display==='none') return;
+      el.style.zoom=''; el.style.width=''; el.style.minHeight='0';
+      var h=el.scrollHeight;
+      if(h>TARGET){
+        var z=Math.max(0.4, TARGET/h);
+        el.style.minHeight='0'; el.style.overflow='hidden';
+        el.style.pageBreakAfter='avoid'; el.style.breakAfter='avoid';
+        for(var i=0;i<8;i++){
+          el.style.zoom=z; el.style.width=(210/z)+'mm';
+          var rh=el.getBoundingClientRect().height;
+          if(rh<=TARGET||z<=0.4) break;
+          z=Math.max(0.4, z*TARGET/rh*0.995);
+        }
+      }
+    }catch(e){}
+  }
+  function resetInvoice(){
+    var el=document.querySelector('.inv-a4-page');
+    if(el){ el.style.zoom=''; el.style.width=''; el.style.minHeight=''; el.style.overflow=''; el.style.pageBreakAfter=''; el.style.breakAfter=''; }
+  }
+  window.addEventListener('beforeprint',fitInvoice);
+  window.addEventListener('afterprint',resetInvoice);
+  if(window.matchMedia){ var mq=window.matchMedia('print'); var cb=function(e){ e.matches?fitInvoice():resetInvoice(); };
+    mq.addEventListener?mq.addEventListener('change',cb):mq.addListener(cb); }
 })();
 </script>
 </body>
