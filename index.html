@@ -6410,6 +6410,8 @@ async function saveInvoiceToHistory(invoiceData) {
             window.rfApplyInvoiceStock(invoiceData, existing);
         }
     } catch(e) { console.warn('Stock auto-deduct failed', e); }
+    invoiceData.updatedAt  = Date.now();
+    invoiceData.pendingSync = true; // cloud-এ না পৌঁছানো পর্যন্ত লোকাল কপি সুরক্ষিত থাকবে
     await idbSaveInvoice(invoiceData);
     // 📩 নতুন অর্ডার হলে Order Confirm SMS পাঠানো (একবারই)
     try {
@@ -10395,6 +10397,8 @@ window.rfStartRealtimeSync = function () {
                     const d = ch.doc.data();
                     if (ch.type === 'removed') { toDel.push(d.invoiceNo); return; }
                     const loc = localMap[String(d.invoiceNo)];
+                    // লোকালে এখনো cloud-এ না যাওয়া বা নতুন পরিবর্তন থাকলে পুরনো cloud কপি দিয়ে ওভাররাইট করবো না
+                    if (loc && (loc.pendingSync || (loc.updatedAt && d.updatedAt && d.updatedAt < loc.updatedAt))) return;
                     // cloud-এ ছবি বাদ (বড় হওয়ায়) থাকলে লোকালের ছবি রেখে দাও
                     if (loc && (!d.photos || !d.photos.length) && loc.photos && loc.photos.length) d.photos = loc.photos;
                     if (loc && JSON.stringify(loc) === JSON.stringify(d)) return;
@@ -10471,20 +10475,49 @@ window.rfStopSync = function () {
 
 // ☁️ ছবি বড় হওয়ায় cloud save fail করলে ছবি বাদ দিয়ে আবার চেষ্টা (যাতে অন্তত invoice সব ডিভাইসে যায়)
 async function saveInvoiceToCloudFS(inv) {
+    // undefined / অবৈধ মান বাদ দিয়ে plain object বানানো (Firestore এতে reject করে)
+    const clean = JSON.parse(JSON.stringify(inv));
+    const sentAt = clean.updatedAt;
+    delete clean.pendingSync;
+    let ok = false;
     try {
-        await setDoc(doc(db, 'company', COMPANY_ID, 'invoices', String(inv.invoiceNo)), inv);
+        await setDoc(doc(db, 'company', COMPANY_ID, 'invoices', String(clean.invoiceNo)), clean);
+        ok = true;
         setSyncBadge('✅ ইনভয়েস সংরক্ষিত');
     } catch (e) {
         console.log('Cloud invoice save failed, retrying without photos', e);
         try {
-            await setDoc(doc(db, 'company', COMPANY_ID, 'invoices', String(inv.invoiceNo)), Object.assign({}, inv, { photos: [] }));
+            await setDoc(doc(db, 'company', COMPANY_ID, 'invoices', String(clean.invoiceNo)), Object.assign({}, clean, { photos: [] }));
+            ok = true;
             setSyncBadge('✅ ইনভয়েস সংরক্ষিত (ছবি ছাড়া)');
         } catch (e2) {
             console.log('Cloud invoice save failed', e2);
-            setSyncBadge('⚠️ সিঙ্ক ব্যর্থ');
+            setSyncBadge('⚠️ সিঙ্ক ব্যর্থ — পরে আবার চেষ্টা হবে');
         }
     }
+    if (ok) await rfMarkInvoiceSynced(clean.invoiceNo, sentAt);
+    return ok;
 }
+
+// cloud-এ সফলভাবে যাওয়ার পর pendingSync=false করা (শুধু যদি এর মধ্যে আবার এডিট না হয়ে থাকে)
+async function rfMarkInvoiceSynced(invoiceNo, sentAt) {
+    try {
+        const cur = await idbGetInvoice(invoiceNo);
+        if (cur && cur.pendingSync && cur.updatedAt === sentAt) {
+            cur.pendingSync = false;
+            await window.rfIdbPutMany([cur]);
+        }
+    } catch (e) { console.log('mark synced failed', e); }
+}
+
+// অ্যাপ খোলার সময় যেসব ইনভয়েস cloud-এ যায়নি (refresh/নেটওয়ার্কের কারণে), সেগুলো এখন পাঠানো
+window.rfFlushPendingInvoices = async function () {
+    if (!auth.currentUser) return;
+    const all = await getAllInvoices();
+    for (const inv of all) {
+        if (inv.pendingSync) await saveInvoiceToCloudFS(inv);
+    }
+};
 
 async function deleteInvoiceFromCloudFS(invoiceNo) {
     try { await deleteDoc(doc(db, 'company', COMPANY_ID, 'invoices', String(invoiceNo))); } catch (e) {}
@@ -10669,6 +10702,7 @@ onAuthStateChanged(auth, async (user) => {
             }
             // 📩 SMS template/settings সব ডিভাইসে sync (background)
             window.rfStartSmsSettingsSync();
+            try { await window.rfFlushPendingInvoices(); } catch (e) { console.log('pending flush failed', e); }
             // ⚡ invoice realtime sync (শুধু fresh-start check ঠিকঠাক হলে — পুরনো ডেটা ফিরে আসা আটকাতে)
             if (sessionStorage.getItem('rf_inv_sync_ok_' + user.uid)) window.rfStartRealtimeSync();
             if (!_appBooted) { _appBooted = true; await initRahmanApp(); }
