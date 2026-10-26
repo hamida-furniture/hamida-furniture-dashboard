@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>(function(){try{var t=new URLSearchParams(location.search).get("track");if(t){location.replace("track.html?t="+encodeURIComponent(t))}}catch(e){}})();</script>
     <title>Hamida Furniture Management System</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Tiro+Bangla&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
@@ -4301,7 +4302,7 @@ function saveAllUrls() {
         localStorage.setItem('rfSiteUrl', siteUrl);
         // Preview update
         const prev = document.getElementById('wa-url-preview');
-        if (prev) prev.textContent = '✅ Tracking link: ' + siteUrl + '?track=2572 (example)';
+        if (prev) prev.textContent = '✅ Tracking link: ' + siteUrl + '/track.html?t=xxxx (example)';
     }
     setCloudStatus('✅ সব URL সংরক্ষিত হয়েছে!', 'green');
 }
@@ -4631,7 +4632,8 @@ function hideCloudIndicator() {}
 
 // Random token তৈরি করা (invoice number expose হবে না)
 function generateTrackToken() {
-    return 'rf' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+    var a = new Uint8Array(26); crypto.getRandomValues(a);
+    return Array.prototype.map.call(a, function(x){ return 'abcdefghijklmnopqrstuvwxyz0123456789'.charAt(x % 36); }).join('');
 }
 
 function buildTrackingLink(inv) {
@@ -4639,20 +4641,21 @@ function buildTrackingLink(inv) {
     if (!siteUrl) return null;
     // token না থাকলে নতুন তৈরি করো
     const token = inv.trackToken || generateTrackToken();
-    return siteUrl + '?track=' + token;
+    return siteUrl + '/track.html?t=' + token;
 }
 
 // WhatsApp popup খোলা
-function openWhatsAppModal() {
+async function openWhatsAppModal() {
     const invoiceNo = document.getElementById('inv-no').innerText;
     // আগে invoice save করি
     const invoiceData = collectInvoiceData();
-    saveInvoiceToHistory(invoiceData);
+    await saveInvoiceToHistory(invoiceData);
     saveCommission(invoiceData);
     saveCloudData();
 
     const siteUrl    = getSiteUrl();
     const trackLink  = siteUrl ? buildTrackingLink(invoiceData) : null;
+    try { if (trackLink && window.rfTrackEnsure) window.rfTrackEnsure(invoiceData); } catch(e) {}
 
     document.getElementById('wa-inv-no').textContent    = invoiceNo;
     document.getElementById('wa-cust-name').textContent = invoiceData.customerName || '—';
@@ -4707,7 +4710,7 @@ function sendWAMessage(inv, type, trackLink) {
 💰 *মোট মূল্য:* ৳${total}
 🔴 *বাকি:* ৳${due}
 
-🔗 *আপনার Invoice ও Delivery Status দেখুন:*
+🔗 *আপনার অর্ডারের অবস্থা দেখুন:*
 ${link}
 
 যোগাযোগ: ${compPh}
@@ -4769,7 +4772,14 @@ function rfNormDeliveryStatus(s) {
     return (s === 'On Delivery') ? 'Ready For Delivery' : (s || 'Processing');
 }
 
+// নিরাপত্তা: আগের ট্র্যাকিং পেজ সব কাস্টমারের ইনভয়েস ডাউনলোড করত, তাই বন্ধ। এখন আলাদা track.html ব্যবহার হয়।
 async function maybeShowTrackingPage() {
+    const p = new URLSearchParams(window.location.search).get('track');
+    if (!p) return false;
+    location.replace('track.html?t=' + encodeURIComponent(p));
+    return true;
+}
+async function _rfLegacyTrackingPage_DISABLED() {
     const params  = new URLSearchParams(window.location.search);
     const trackNo = params.get('track');
     if (!trackNo) return false;
@@ -5078,7 +5088,7 @@ async function renderDashboard() {
                     <option value="Cancelled" ${inv.deliveryStatus==='Cancelled'?'selected':''}>Cancelled</option>
                 </select>
             </td>
-            <td><span class="view-btn" onclick="showDeliveryDetail('${inv.invoiceNo}')">View Details</span></td>
+            <td><span class="view-btn" onclick="showDeliveryDetail('${inv.invoiceNo}')">View Details</span> <span class="view-btn" onclick="rfOpenTrack('${inv.invoiceNo}')">📍 Track</span></td>
         </tr>`);
     });
     tbody.innerHTML = _rowsHtml.join('');
@@ -5769,7 +5779,7 @@ async function handleDashSearch(query) {
                     <option value="Cancelled" ${inv.deliveryStatus==='Cancelled'?'selected':''}>Cancelled</option>
                 </select>
             </td>
-            <td><span class="view-btn" onclick="showDeliveryDetail('${inv.invoiceNo}')">View Details</span></td>
+            <td><span class="view-btn" onclick="showDeliveryDetail('${inv.invoiceNo}')">View Details</span> <span class="view-btn" onclick="rfOpenTrack('${inv.invoiceNo}')">📍 Track</span></td>
         </tr>`;
     });
 
@@ -5826,6 +5836,7 @@ async function updateDeliveryStatus(invoiceNo, selectEl) {
         inv.deliveryStatus = newStatus;
         await idbSaveInvoice(inv);
         saveCloudData();
+        try { if (window.rfTrackSyncStatus) window.rfTrackSyncStatus(inv); } catch(e) {}
         // 🚛 Ready For Delivery / 🚚 Delivered / ❌ Cancelled হলে auto SMS (একবারই — duplicate protection)
         try {
             if (typeof window.rfAutoSendSms === 'function') {
@@ -6647,6 +6658,7 @@ async function changeDeliveryStatus(invoiceNo) {
         if(confirm('Change status to Delivered?')) {
             inv.deliveryStatus = 'Delivered';
             await idbSaveInvoice(inv);
+            try { if (window.rfTrackSyncStatus) window.rfTrackSyncStatus(inv); } catch(e) {}
             showInvoiceHistory();
         }
     }
@@ -6740,7 +6752,7 @@ function previewTrackUrl(val) {
     if (val && val.trim()) {
         let u = val.trim().replace(/\/+$/,'');
         if (!u.startsWith('http')) u = 'https://' + u;
-        el.textContent = '✅ Link: ' + u + '?track=2572';
+        el.textContent = '✅ Link: ' + u + '/track.html?t=xxxx';
         el.style.color = '#2e7d32';
     } else {
         el.textContent = '';
@@ -9729,6 +9741,17 @@ const auth     = getAuth(fbApp);
 const db       = getFirestore(fbApp);
 const provider = new GoogleAuthProvider();
 
+// 📍 কাস্টমার ট্র্যাকিং: আলাদা collection `tracking/{গোপন কোড}` — শুধু লগইন করা স্টাফ লিখতে পারে, কাস্টমার একটামাত্র ডকুমেন্ট পড়তে পারে।
+window.rfTrackAuthed = function () { return !!auth.currentUser; };
+window.rfTrackPut = async function (tok, data) {
+    if (!auth.currentUser) throw new Error('login required');
+    await setDoc(doc(db, 'tracking', String(tok)), JSON.parse(JSON.stringify(data)));
+};
+window.rfTrackGet = async function (tok) {
+    const snap = await getDoc(doc(db, 'tracking', String(tok)));
+    return snap.exists() ? snap.data() : null;
+};
+
 // 🔒 Force session-only persistence BEFORE Firebase gets a chance to
 // auto-restore any previously saved session. This is what actually stops
 // "logs in without clicking" — doing this only inside the login/signup
@@ -10875,7 +10898,8 @@ document.addEventListener('click', (e) => {
             .replace(/{invoice}/g, inv.invoiceNo || '')
             .replace(/{amount}/g, (parseFloat(inv.grandTotal || 0)).toLocaleString())
             .replace(/{due}/g, (parseFloat(inv.due || 0)).toLocaleString())
-            .replace(/{shop}/g, 'Hamida Furniture');
+            .replace(/{shop}/g, 'Hamida Furniture')
+            .replace(/{track}/g, (window.rfTrackLinkFor ? window.rfTrackLinkFor(inv) : ''));
     }
 
     // ---- Toast ----
@@ -11113,6 +11137,7 @@ document.addEventListener('click', (e) => {
 
     // ---- Auto SMS (Order Confirm / Delivered / Cancel) — এখন Queue ব্যবহার করে, তাই non-blocking ----
     window.rfAutoSendSms = async function(type, inv) {
+        try { if (window.rfTrackEnsure) window.rfTrackEnsure(inv); } catch(e) {}
         var s = getSettings();
         if (!s.enabled) return; // If Master switch is OFF, nothing happens, no popup
         var number = primaryPhone(inv.customerPhone);
@@ -11719,6 +11744,106 @@ document.addEventListener('click', (e) => {
   window.addEventListener('afterprint',resetInvoice);
   if(window.matchMedia){ var mq=window.matchMedia('print'); var cb=function(e){ e.matches?fitInvoice():resetInvoice(); };
     mq.addEventListener?mq.addEventListener('change',cb):mq.addListener(cb); }
+})();
+</script>
+
+<!-- ═══════ 📍 কাস্টমার ট্র্যাকিং (স্টাফের অংশ) ═══════ -->
+<style>
+#rf-trk-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px}
+#rf-trk-ov .rft-box{background:#fff;color:#222;border-radius:14px;width:100%;max-width:560px;padding:16px;font-family:'Segoe UI',Arial,sans-serif;font-size:14px}
+#rf-trk-ov .rft-h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;font-size:16px}
+#rf-trk-ov .rft-h button{border:0;background:#eee;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer}
+#rf-trk-ov label{display:block;font-weight:700;margin:10px 0 4px;font-size:13px;color:#444}
+#rf-trk-ov input[type=text],#rf-trk-ov input[type=date],#rf-trk-ov input[type=url],#rf-trk-ov textarea,#rf-trk-ov #rft-link{width:100%;padding:9px 10px;border:1px solid #ccd;border-radius:8px;font-size:14px;box-sizing:border-box;font-family:inherit}
+#rf-trk-ov .rft-row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;align-items:center}
+#rf-trk-ov .rft-btn{display:inline-block;padding:9px 13px;border:1px solid #bbb;border-radius:8px;background:#f6f6f6;color:#222;text-decoration:none;cursor:pointer;font-size:14px;font-weight:600}
+#rf-trk-ov .rft-btn.wa{background:#25D366;border-color:#25D366;color:#073}#rf-trk-ov .rft-btn.pri{background:#005555;border-color:#005555;color:#fff}
+#rf-trk-ov .rft-chips{display:flex;flex-wrap:wrap;gap:6px}
+#rf-trk-ov .rft-chip{padding:7px 10px;border:1px solid #bbb;border-radius:20px;background:#f6f6f6;cursor:pointer;font-size:13px}
+#rf-trk-ov .rft-chip.on{background:#e8891c;border-color:#e8891c;color:#1d1200;font-weight:700}
+#rf-trk-ov .rft-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:520px){#rf-trk-ov .rft-grid{grid-template-columns:1fr}}
+#rf-trk-ov .rft-up{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #eee;padding:6px 0}#rf-trk-ov .rft-up button{border:0;background:#fdd;border-radius:6px;cursor:pointer}
+#rf-trk-ov details{margin-top:12px}#rf-trk-ov #rft-prev img{height:44px;border-radius:6px}
+#rft-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e7e34;color:#fff;padding:11px 18px;border-radius:9px;font-weight:700;z-index:100001;font-size:13px}
+</style>
+<script>
+(function(){
+  var STEPS=['অর্ডার নিশ্চিত হয়েছে','কাজ ধরা হয়েছে','কাজ মাঝামাঝি পর্যায়ে','ফেব্রিক্স / কভারের কাজ','ফিনিশিং ও ফাইনাল','প্রোডাক্ট রেডি','গাড়ি খোঁজা হচ্ছে','গাড়ি ঠিক হয়েছে','গাড়িতে তোলা হয়েছে / পথে আছে','ডেলিভারি হয়েছে'];
+  var TOK=/^[a-z0-9]{24,40}$/, ov=null, pendingImg='';
+  function $(id){return document.getElementById(id)}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function toast(m,bad){var t=document.createElement('div');t.id='rft-toast';t.textContent=m;if(bad)t.style.background='#c0392b';document.body.appendChild(t);setTimeout(function(){t.remove()},3200)}
+  function strongTok(){var a=new Uint8Array(26);crypto.getRandomValues(a);return Array.prototype.map.call(a,function(x){return 'abcdefghijklmnopqrstuvwxyz0123456789'.charAt(x%36)}).join('')}
+  function waPh(p){var d=String(p||'').replace(/\D/g,'');if(d.indexOf('00')===0)d=d.slice(2);else if(/^0\d{10}$/.test(d))d='88'+d;else if(/^1\d{9}$/.test(d))d='880'+d;return d}
+  function link(tok){var u=(typeof getSiteUrl==='function'?getSiteUrl():'');return u?u+'/track.html?t='+tok:''}
+  window.rfTrackLinkFor=function(inv){return inv&&inv.trackToken?link(inv.trackToken):''};
+  function shopInfo(){var lg=localStorage.getItem('invoiceLogo')||'';return {name:localStorage.getItem('companyName')||'Hamida Furniture',phone:localStorage.getItem('compPhone')||'',fb:localStorage.getItem('rfTrackFb')||'https://www.facebook.com/hamidafurniture',group:localStorage.getItem('rfTrackGroup')||'',logo:(/^data:image\//.test(lg)&&lg.length<120000)?lg:''}}
+  function stage0(st){return st==='Delivered'?9:(st==='Ready For Delivery'||st==='On Delivery')?5:0}
+  function base(inv){return {no:String(inv.invoiceNo||''),name:inv.customerName||'',cphone:inv.customerPhone||'',addr:inv.customerAddress||'',items:(inv.items||[]).map(function(i){return String(i.desc||i.description||'').trim()}).filter(Boolean),steps:STEPS,stage:stage0(inv.deliveryStatus),eta:'',note:'',ups:[],cancelled:inv.deliveryStatus==='Cancelled',shop:shopInfo(),upd:Date.now()}}
+  function trim(d){var n=0;while(JSON.stringify(d).length>800000&&n<40){var k=-1;for(var i=0;i<(d.ups||[]).length;i++){if(d.ups[i].img){k=i;break}}if(k<0)break;d.ups[k].img='';n++}return d}
+  async function put(tok,d){if(!window.rfTrackPut)throw new Error('Firebase লোড হয়নি');await window.rfTrackPut(tok,trim(d))}
+  function authed(){return !!(window.rfTrackAuthed&&window.rfTrackAuthed())}
+  window.rfTrackEnsure=async function(inv){try{if(!inv||!inv.trackToken||!authed())return;var cur=await window.rfTrackGet(inv.trackToken);if(!cur)await put(inv.trackToken,base(inv))}catch(e){console.warn('track ensure',e)}};
+  window.rfTrackSyncStatus=async function(inv){try{if(!inv||!inv.trackToken||!authed())return;var d=await window.rfTrackGet(inv.trackToken);if(!d)return;var st=inv.deliveryStatus;
+    if(st==='Delivered'){d.stage=STEPS.length-1;d.cancelled=false}else if(st==='Cancelled'){d.cancelled=true}else{d.cancelled=false;if(st==='Ready For Delivery'||st==='On Delivery')d.stage=Math.max(+d.stage||0,5);else if((+d.stage||0)>=5)d.stage=4}
+    d.upd=Date.now();await put(inv.trackToken,d)}catch(e){console.warn('track sync',e)}};
+  function comp(file,max,q){return new Promise(function(ok,no){var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){var k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',q))};im.onerror=no;im.src=r.result};r.onerror=no;r.readAsDataURL(file)})}
+  function close(){if(ov){ov.remove();ov=null}}
+  function draw(inv,d){
+    close();pendingImg='';
+    var L=link(inv.trackToken),ph=waPh(inv.customerPhone),sh=d.shop||shopInfo(),cur=+d.stage||0;
+    var msg='আসসালামু আলাইকুম '+(inv.customerName||'')+'। আপনার অর্ডার (নং '+inv.invoiceNo+') এখন কোন পর্যায়ে আছে, ছবিসহ এই লিংকে দেখতে পারবেন: '+L+' — '+shopInfo().name;
+    var chips=STEPS.map(function(s,i){return '<button type="button" class="rft-chip'+(i===cur?' on':'')+'" data-s="'+i+'">'+(i+1)+'. '+esc(s)+'</button>'}).join('');
+    var ups=(d.ups||[]).map(function(u,i){return {u:u,i:i}}).reverse().map(function(x){return '<div class="rft-up"><span>'+esc(new Date(x.u.t).toLocaleDateString('bn-BD'))+' · '+esc(x.u.txt||'(ছবি)')+(x.u.img?' 🖼':'')+'</span><button type="button" data-del="'+x.i+'" aria-label="মুছুন">×</button></div>'}).join('');
+    ov=document.createElement('div');ov.id='rf-trk-ov';
+    ov.innerHTML='<div class="rft-box" role="dialog" aria-label="ট্র্যাকিং">'+
+     '<div class="rft-h"><b>📍 ট্র্যাকিং — #'+esc(inv.invoiceNo)+' '+esc(inv.customerName||'')+'</b><button type="button" data-x="1" aria-label="বন্ধ করুন">✕</button></div>'+
+     '<label>কাস্টমারের লিংক (লগইন ছাড়াই খোলে, শুধু এই অর্ডারের অবস্থা দেখায়)</label><input id="rft-link" readonly value="'+esc(L)+'">'+
+     '<div class="rft-row"><a class="rft-btn wa" target="_blank" rel="noopener" href="'+(ph?'https://wa.me/'+ph+'?text='+encodeURIComponent(msg):'#')+'">WhatsApp-এ পাঠান</a><a class="rft-btn" href="'+(ph?'sms:+'+ph+'?body='+encodeURIComponent(msg):'#')+'">SMS পাঠান</a><button type="button" class="rft-btn" data-copy="1">লিংক কপি</button></div>'+
+     '<label>এখন কোন পর্যায়ে (চাপলেই সেভ হবে)</label><div class="rft-chips">'+chips+'</div>'+
+     '<div class="rft-grid"><div><label for="rft-eta">ডেলিভারির সম্ভাব্য তারিখ</label><input id="rft-eta" type="date" value="'+esc(d.eta||'')+'"></div><div><label for="rft-note">কাস্টমারকে ছোট নোট</label><input id="rft-note" type="text" value="'+esc(d.note||'')+'" placeholder="যেমন: গাড়ি খোঁজা হচ্ছে"></div></div>'+
+     '<label for="rft-txt">নতুন আপডেট (ঐচ্ছিক)</label><textarea id="rft-txt" rows="2" placeholder="যেমন: ফেব্রিক্স লাগানো হয়েছে"></textarea>'+
+     '<div class="rft-row"><label class="rft-btn" for="rft-img" style="margin:0">+ ছবি যোগ</label><input id="rft-img" type="file" accept="image/*" hidden><span id="rft-prev"></span><button type="button" class="rft-btn pri" data-save="1">সংরক্ষণ ও আপডেট দিন</button></div>'+
+     (ups?'<label>দেওয়া আপডেট</label>'+ups:'')+
+     '<details><summary>পেজের নিচের লিংক (ফেসবুক পেজ / রিভিউ গ্রুপ)</summary><label for="rft-fb">ফেসবুক পেজ</label><input id="rft-fb" type="url" value="'+esc(sh.fb||'')+'"><label for="rft-grp">রিভিউ ভিডিওর গ্রুপের লিংক</label><input id="rft-grp" type="url" value="'+esc(sh.group||'')+'" placeholder="https://www.facebook.com/groups/..."></details></div>';
+    document.body.appendChild(ov);ov._inv=inv;ov._d=d;
+  }
+  async function persist(patch,addUpd){
+    var inv=ov._inv,d=ov._d;
+    d.eta=$('rft-eta').value||'';d.note=($('rft-note').value||'').trim();
+    try{localStorage.setItem('rfTrackFb',$('rft-fb').value.trim());localStorage.setItem('rfTrackGroup',$('rft-grp').value.trim())}catch(e){}
+    Object.assign(d,patch||{});
+    var b=base(inv);d.no=b.no;d.name=b.name;d.cphone=b.cphone;d.addr=b.addr;d.items=b.items;d.steps=STEPS;d.shop=shopInfo();d.cancelled=inv.deliveryStatus==='Cancelled';
+    if(addUpd){var tx=($('rft-txt').value||'').trim();if(tx||pendingImg)d.ups=(d.ups||[]).concat([{t:Date.now(),txt:tx,img:pendingImg||''}]).slice(-30)}
+    d.upd=Date.now();
+    try{await put(inv.trackToken,d);toast('✅ কাস্টমার পেজ আপডেট হয়েছে');draw(inv,d)}
+    catch(err){toast('❌ সংরক্ষণ হয়নি'+(err&&err.code?' ('+err.code+')':''),true);if(err&&err.code==='permission-denied')alert('Firestore rules-এ tracking অংশ যোগ করা হয়নি। দেওয়া নির্দেশনা অনুযায়ী Firebase Console → Firestore → Rules-এ বসিয়ে Publish করুন।')}
+  }
+  window.rfOpenTrack=async function(invNo){
+    var inv=await idbGetInvoice(invNo);if(!inv){alert('Invoice পাওয়া যায়নি');return}
+    if(typeof getSiteUrl==='function'&&!getSiteUrl()){alert('⚠️ আগে Settings-এ Website URL দিন (যে লিংকে index.html খোলে)।');return}
+    if(!authed()){alert('⚠️ Firebase-এ লগইন করা অবস্থায় ট্র্যাকিং ব্যবহার করুন।');return}
+    var cur=null;
+    if(inv.trackToken){try{cur=await window.rfTrackGet(inv.trackToken)}catch(e){}}
+    if(!cur&&!TOK.test(inv.trackToken||'')){inv.trackToken=strongTok();await idbSaveInvoice(inv);try{saveCloudData()}catch(e){}}
+    var d=cur||base(inv);
+    if(!cur){try{await put(inv.trackToken,d)}catch(err){toast('❌ ট্র্যাকিং তৈরি হয়নি'+(err&&err.code?' ('+err.code+')':''),true);if(err&&err.code==='permission-denied')alert('Firestore rules-এ tracking অংশ যোগ করা হয়নি। Firebase Console → Firestore → Rules-এ দেওয়া নিয়ম বসিয়ে Publish করুন।');return}}
+    draw(inv,d);
+  };
+  document.addEventListener('click',function(e){
+    if(!ov)return;var t=e.target;if(t===ov){close();return}if(!ov.contains(t))return;
+    var b=t.closest('button');if(!b)return;
+    if(b.dataset.x){close()}
+    else if(b.dataset.copy){var el=$('rft-link');try{navigator.clipboard.writeText(el.value).then(function(){toast('লিংক কপি হয়েছে')})}catch(er){el.select();document.execCommand('copy');toast('লিংক কপি হয়েছে')}}
+    else if(b.dataset.s!==undefined){persist({stage:+b.dataset.s},false)}
+    else if(b.dataset.save){persist({},true)}
+    else if(b.dataset.del!==undefined){var d=ov._d,u=(d.ups||[]).slice();u.splice(+b.dataset.del,1);persist({ups:u},false)}
+  });
+  document.addEventListener('change',function(e){
+    if(!ov||e.target.id!=='rft-img'||!e.target.files[0])return;
+    comp(e.target.files[0],640,0.7).then(function(x){pendingImg=x;var p=$('rft-prev');if(p)p.innerHTML='<img src="'+x+'" alt="">'},function(){toast('ছবি পড়া যায়নি',true)});
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')close()});
 })();
 </script>
 </body>
