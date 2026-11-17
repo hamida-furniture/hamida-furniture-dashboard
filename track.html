@@ -28,7 +28,7 @@ h2{font-size:19px;margin:0 0 16px}
 .shop{font-weight:700;font-size:18px;color:var(--green);flex:1;min-width:0}
 .cols{display:flex;flex-direction:column}
 .l,.r{display:contents}
-.c-hero{order:1}.c-tl{order:2}.c-ups{order:3}.c-info{order:4}.c-acts{order:5}
+.c-hero{order:1}.c-tl{order:2}.c-acts{order:3}
 .lab{font-size:14px;color:var(--muted)}
 .big{font-size:27px;font-weight:700;letter-spacing:.2px;line-height:1.25;word-break:break-all}
 .pill{display:inline-flex;align-items:center;gap:8px;background:var(--orange-soft);border-radius:24px;padding:6px 16px;font-size:15px;font-weight:600;margin-top:10px}
@@ -54,8 +54,7 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
 .tl li:not(:last-child)::before{content:"";position:absolute;left:21px;top:44px;bottom:2px;width:2px;background:var(--line)}
 .dot{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--line);color:var(--muted)}
 .dot svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.tl li.cur .dot{background:var(--orange);color:#1d1200;box-shadow:0 0 0 5px var(--orange-soft)}
-.tl li.cur.ok .dot{background:var(--green);color:#fff;box-shadow:0 0 0 5px var(--green-soft)}
+.tl li.cur .dot{background:var(--green);color:#fff;box-shadow:0 0 0 5px var(--green-soft)}
 .tx{padding-top:2px;min-width:0}.tx .t{font-size:17px}.tl li.cur .t{font-weight:700}.tx .w{font-size:14px;color:var(--muted)}
 .cust{font-size:15px;line-height:1.65}.cust div{display:flex;gap:10px;padding:6px 0}
 .cust svg,.ic{width:19px;height:19px;margin-top:3px;color:var(--green);stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
@@ -76,6 +75,17 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
 .sk{height:14px;border-radius:7px;background:linear-gradient(90deg,var(--line),transparent,var(--line));background-size:200% 100%;animation:sh 1.2s linear infinite;margin:10px 0}
 @keyframes sh{to{background-position:-200% 0}}
 .fade{animation:in .25s ease both}@keyframes in{from{opacity:0}to{opacity:1}}
+/* লাইভ ব্লিংক: কাজ চলছে বোঝাতে */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(11,110,110,.55)}70%{box-shadow:0 0 0 12px rgba(11,110,110,0)}100%{box-shadow:0 0 0 0 rgba(11,110,110,0)}}
+@keyframes pulseO{0%{box-shadow:0 0 0 0 rgba(232,137,28,.55)}70%{box-shadow:0 0 0 12px rgba(232,137,28,0)}100%{box-shadow:0 0 0 0 rgba(232,137,28,0)}}
+.live{animation:blink 1.3s ease-in-out infinite}
+.pill .live-dot{animation:blink 1s ease-in-out infinite}
+.tl li.cur.go .dot{animation:pulse 1.6s ease-out infinite}
+.seg span.c.live{animation:blink 1.3s ease-in-out infinite}
+.rec{margin-top:2px}.rec .cust{margin-top:6px}
+.tx .t.nt{font-size:16.5px;word-break:break-word}
+.tx img{display:block;max-width:100%;height:auto;border-radius:12px;margin-top:10px;cursor:zoom-in;background:var(--line)}
 /* ট্যাবলেট */
 @media (min-width:600px){.wrap{max-width:680px;padding:20px 20px 32px}.card{padding:26px}.big{font-size:30px}}
 /* ল্যাপটপ / পিসি: দুই কলাম */
@@ -118,6 +128,7 @@ const I = {
   box:'<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>',
   cal:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
   list:'<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>',
+  msg:'<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   cam:'<path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/>'
 };
@@ -148,7 +159,7 @@ function sect(cls){ return h('div', 'card ' + cls) }
 function kv(label, valNode, full, big){ const c = h('div', full ? 'full' : ''); c.appendChild(h('div', 'lab', label)); if (typeof valNode === 'string') c.appendChild(h('div', 'val' + (big ? ' lg' : ''), valNode)); else c.appendChild(valNode); return c }
 function render(d){
   norm(d);
-  const sig = JSON.stringify([d.upd, d.stage, d.cancelled, (d.ups || []).length, d.amt]);
+  const sig = JSON.stringify([d.upd, d.stage, d.cancelled, (d.ups || []).length, d.amt, d.name, d.cphone, d.addr]);
   if (sig === lastSig && app.firstChild && !app.querySelector('.sk')) return;
   lastSig = sig;
   const steps = d.steps, N = steps.length, st = Math.max(0, Math.min(N - 1, +d.stage || 0)), shop = d.shop || {}, fin = st === N - 1 && !d.cancelled;
@@ -164,15 +175,21 @@ function render(d){
   const hero = sect('c-hero' + (fin ? ' ok-card' : ''));
   hero.appendChild(h('div', 'lab', 'অর্ডার নম্বর'));
   hero.appendChild(h('div', 'big', '#' + (d.no || '')));
-  if (d.name) hero.appendChild(h('div', 'lab', d.name));
   if (d.cancelled) {
     const x = h('div', 'cancel', 'এই অর্ডারটি বাতিল করা হয়েছে। বিস্তারিত জানতে আমাদের সাথে যোগাযোগ করুন।'); x.style.marginTop = '14px'; hero.appendChild(x);
   } else {
-    const pill = h('span', 'pill' + (fin ? ' ok' : '')); pill.appendChild(h('i')); pill.appendChild(document.createTextNode(fin ? 'ডেলিভারি সম্পন্ন' : 'চলমান — ' + steps[st])); hero.appendChild(pill);
-    const seg = h('div', 'seg'); for (let i = 0; i < N; i++) seg.appendChild(h('span', i < st || fin ? 'd' : i === st ? 'c' : '')); hero.appendChild(seg);
-    const m = h('div', 'meta lab'); m.appendChild(h('span', '', 'ধাপ ' + bn(st + 1) + ' / ' + bn(N))); m.appendChild(h('span', '', bn(Math.round((st + 1) * 100 / N)) + '%')); hero.appendChild(m);
+    const pill = h('span', 'pill' + (fin ? ' ok' : '')); pill.appendChild(h('i', fin ? '' : 'live-dot')); pill.appendChild(h('span', fin ? '' : 'live', fin ? 'ডেলিভারি সম্পন্ন' : 'চলমান — ' + steps[st])); hero.appendChild(pill);
+    const seg = h('div', 'seg'); for (let i = 0; i < N; i++) seg.appendChild(h('span', i < st || fin ? 'd' : i === st ? 'c live' : '')); hero.appendChild(seg);
+    const m = h('div', 'meta lab'); m.appendChild(h('span', fin ? '' : 'live', 'ধাপ ' + bn(st + 1) + ' / ' + bn(N))); m.appendChild(h('span', '', bn(Math.round((st + 1) * 100 / N)) + '%')); hero.appendChild(m);
     if (!fin) { const n = h('div', 'next muted', 'পরবর্তী ধাপ: '); n.appendChild(h('b', '', steps[st + 1])); n.firstChild.parentNode.lastChild.style.color = 'var(--fg)'; hero.appendChild(n) }
     if (d.note) hero.appendChild(h('div', 'note', d.note));
+  }
+  const rows = [[I.user, d.name], [I.phone, d.cphone], [I.pin, d.addr], [I.box, (d.items || []).join(', ')]].filter(r => r[1]);
+  if (rows.length) {
+    hero.appendChild(document.createElement('hr'));
+    const rec = h('div', 'rec'); rec.appendChild(h('div', 'lab', 'প্রাপক ও অর্ডারের তথ্য')); const cu = h('div', 'cust');
+    rows.forEach(r => { const row = h('div'); row.appendChild(ico('', r[0])); row.appendChild(h('span', '', r[1])); cu.appendChild(row) });
+    rec.appendChild(cu); hero.appendChild(rec);
   }
   const a = d.amt, hasInfo = tm[0] || (d.eta && !fin) || a;
   if (hasInfo) {
@@ -191,34 +208,25 @@ function render(d){
   }
   L.appendChild(hero);
 
-  // ── Tracking updates (নতুন → পুরনো) ──
+  // ── Tracking updates: ধাপ + নোট + ছবি একসাথে, নতুন → পুরনো ──
   if (!d.cancelled) {
+    const ev = []; let last = 0;
+    for (let i = 0; i <= st; i++) { if (tm[i]) last = +tm[i]; ev.push({k: last + i * 0.001, kind: 's', i, t: tm[i] || null}) }
+    (d.ups || []).forEach((u, j) => ev.push({k: +u.t + 0.0005 * j, kind: 'u', u, t: u.t}));
+    ev.sort((x, y) => y.k - x.k);
     const c2 = sect('c-tl'); c2.appendChild(h('h2', '', 'ট্র্যাকিং আপডেট')); const ul = h('ul', 'tl');
-    for (let i = st; i >= 0; i--) {
-      const cur = i === st, li = h('li', (cur ? 'cur' : '') + (cur && fin ? ' ok' : ''));
-      const dot = h('span', 'dot'); dot.innerHTML = SV(cur ? (fin ? I.box : I.clock) : '<path d="M5 12.5l4.5 4.5L19 7.5"/>');
-      const tx = h('div', 'tx'); tx.appendChild(h('div', 't', steps[i])); if (tm[i]) tx.appendChild(h('div', 'w', fmtDT(tm[i])));
+    ev.forEach((e, n) => {
+      const top = n === 0, li = h('li', top ? 'cur' + (fin ? ' ok' : ' go') : '');
+      const dot = h('span', 'dot');
+      dot.innerHTML = SV(top ? (e.kind === 'u' ? I.msg : (fin ? I.box : I.clock)) : '<path d="M5 12.5l4.5 4.5L19 7.5"/>');
+      const tx = h('div', 'tx');
+      if (e.kind === 's') tx.appendChild(h('div', 't', steps[e.i]));
+      else { tx.appendChild(h('div', 't nt', e.u.txt || 'ছবি আপডেট')); }
+      if (e.t) tx.appendChild(h('div', 'w', fmtDT(e.t)));
+      if (e.kind === 'u' && e.u.img && /^data:image\//.test(e.u.img)) { const im = document.createElement('img'); im.decoding = 'async'; im.loading = 'lazy'; im.src = e.u.img; im.alt = 'আপডেটের ছবি'; im.addEventListener('click', () => { ov.firstChild.src = e.u.img; ov.style.display = 'flex' }); tx.appendChild(im) }
       li.appendChild(dot); li.appendChild(tx); ul.appendChild(li);
-    }
-    c2.appendChild(ul); R.appendChild(c2);
-  }
-  // ── ছবি ও নোট আপডেট ──
-  const ups = (d.ups || []).slice().reverse();
-  if (ups.length) {
-    const c3 = sect('c-ups'); c3.appendChild(h('h2', '', 'আপডেট ও ছবি'));
-    ups.forEach(u => {
-      const w = h('div', 'up'); w.appendChild(h('div', 'muted sm', fmtDT(u.t))); if (u.txt) w.appendChild(h('div', '', u.txt));
-      if (u.img && /^data:image\//.test(u.img)) { const im = document.createElement('img'); im.decoding = 'async'; im.loading = 'lazy'; im.src = u.img; im.alt = 'আপডেটের ছবি'; im.addEventListener('click', () => { ov.firstChild.src = u.img; ov.style.display = 'flex' }); w.appendChild(im) }
-      c3.appendChild(w);
     });
-    R.appendChild(c3);
-  }
-  // ── অর্ডারের তথ্য ──
-  const rows = [[I.phone, d.cphone], [I.pin, d.addr], [I.box, (d.items || []).join(', ')]].filter(r => r[1]);
-  if (rows.length) {
-    const c1 = sect('c-info'); c1.appendChild(h('h2', '', 'অর্ডারের তথ্য')); const cu = h('div', 'cust');
-    rows.forEach(r => { const row = h('div'); row.appendChild(ico('', r[0])); row.appendChild(h('span', '', r[1])); cu.appendChild(row) });
-    c1.appendChild(cu); L.appendChild(c1);
+    c2.appendChild(ul); R.appendChild(c2);
   }
   // ── যোগাযোগ ──
   const acts = h('div', 'acts c-acts'); acts.style.marginBottom = '14px';
