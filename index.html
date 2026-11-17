@@ -577,7 +577,7 @@
         /* 🗓️ Date-mask overlay — makes every native <input type="date"> display an
            unambiguous DD-MON-YYYY label instead of the locale-dependent numeric format */
         .rf-date-mask-wrap { position: relative; display: inline-flex; align-items: center; vertical-align: middle; }
-        input.rf-date-masked { color: transparent !important; }
+        input.rf-date-masked { /* মাস্ক বন্ধ: আসল date input সবসময় দেখা যায় ও চাপা/টাইপ করা যায় */ }
         .rf-date-mask-label {
             position: absolute; left: 5px; top: 50%; transform: translateY(-50%);
             font-size: 12px; font-weight: 600; color: #222; pointer-events: none;
@@ -5238,8 +5238,14 @@ async function renderDashboard() {
         const todayStr0 = `${now0.getFullYear()}-${String(now0.getMonth() + 1).padStart(2, '0')}-${String(now0.getDate()).padStart(2, '0')}`;
         drpFromEl.value = firstOfMonth0;
         drpToEl.value = todayStr0;
-        window.rfActiveDashRange = { from: firstOfMonth0, to: todayStr0 };
+        window.rfActiveDashRange = { from: firstOfMonth0, to: todayStr0, isDefault: true };
     } else if (drpFromEl && drpToEl && window.rfActiveDashRange) {
+        // ডিফল্ট রেঞ্জ হলে নতুন দিন/মাসে নিজে থেকে "এই মাসের ১ তারিখ → আজ" হয়ে যায়
+        if (window.rfActiveDashRange.isDefault) {
+            const n1 = new Date(), p2 = x => String(x).padStart(2, '0');
+            window.rfActiveDashRange.from = `${n1.getFullYear()}-${p2(n1.getMonth() + 1)}-01`;
+            window.rfActiveDashRange.to = `${n1.getFullYear()}-${p2(n1.getMonth() + 1)}-${p2(n1.getDate())}`;
+        }
         // Keep the inputs showing whatever range is currently active (survives page switches)
         drpFromEl.value = window.rfActiveDashRange.from;
         drpToEl.value = window.rfActiveDashRange.to;
@@ -5294,6 +5300,7 @@ function rfDateMaskText(dateStr) {
     return `${String(d).padStart(2, '0')}-${MON[m - 1]}-${y}`;
 }
 function rfInitDateMasks() {
+    return; // ⛔ বন্ধ: অদৃশ্য input + উপরের লেবেল মিলত না বলে ক্লিক/টাইপ/মাস বদল কাজ করত না
     document.querySelectorAll('input[type="date"]').forEach(inp => {
         if (inp.dataset.rfMasked) return;
         inp.dataset.rfMasked = '1';
@@ -5334,6 +5341,23 @@ if (document.readyState === 'loading') {
     rfInitDateMasks();
 }
 setInterval(rfRefreshDateMasks, 400);
+
+// 🗓️ পেজ খোলা থাকা অবস্থায় দিন/মাস বদলালে ডিফল্ট রেঞ্জ (এই মাসের ১ তারিখ → আজ) নিজে আপডেট হবে।
+// ইউজার নিজে কাস্টম তারিখ বাছলে সেটা আর বদলায় না।
+setInterval(function () {
+    try {
+        const r = window.rfActiveDashRange;
+        if (!r || !r.isDefault) return;
+        const n = new Date(), p = x => String(x).padStart(2, '0');
+        const from = `${n.getFullYear()}-${p(n.getMonth() + 1)}-01`;
+        const to = `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`;
+        if (r.from === from && r.to === to) return;
+        r.from = from; r.to = to;
+        const f = document.getElementById('drp-from'), t = document.getElementById('drp-to');
+        if (f && t && document.activeElement !== f && document.activeElement !== t) { f.value = from; t.value = to; }
+        if (typeof rfApplyDashRange === 'function') rfApplyDashRange(from, to);
+    } catch (e) {}
+}, 60000);
 
 async function rfShowDashRangeStats() {
     const fromEl = document.getElementById('drp-from');
