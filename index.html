@@ -2900,6 +2900,7 @@ body.dark-mode .ai-result-value, body.dark-full .ai-result-value { background:#2
                 </tbody>
             </table>
 
+            <div class="no-print" style="margin:4px 0 6px;"><button type="button" onclick="rfAddRowClick()" style="padding:6px 16px;background:#008080;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">+ নতুন লাইন যোগ করুন</button></div>
             <div class="footer-grid">
                 <div class="photo-wrapper">
                     <div class="photo-row-top">
@@ -6481,6 +6482,7 @@ function addNewRow() {
     const tbody = document.getElementById('item-tbody');
     const rowCount = tbody.rows.length + 1;
     const newRow = tbody.insertRow();
+    newRow.className = 'rf-new-row';
     newRow.innerHTML = `
         <td class="sl-no">${rowCount}.</td>
         <td class="desc-col"><input type="text" placeholder="Item name..." onkeydown="handleRowKeys(event, this)" oninput="handleRowNameInput(this)"></td>
@@ -6525,7 +6527,17 @@ function parseNum(s) {
     return parseFloat(String(s).replace(/,/g, '')) || 0;
 }
 
+// ✅ item table-এ কমপক্ষে একটা লাইন সবসময় থাকবে (re-edit/মোছা/import-এর পর রো হারিয়ে গেলে নিজে ফিরিয়ে আনে)
+function rfEnsureRows() {
+    const tbody = document.getElementById('item-tbody');
+    if (!tbody || tbody.rows.length > 0) return;
+    const r = tbody.insertRow();
+    r.innerHTML = `<td class="sl-no">1.</td><td class="desc-col"><input type="text" placeholder="Item name..." onkeydown="handleRowKeys(event, this)" oninput="handleRowNameInput(this)"></td><td><input type="number" class="qty" value="0" oninput="calc()" onkeydown="handleQtyRateKeys(event,this)"></td><td><input type="number" class="rate" value="0" oninput="calc()" onkeydown="handleQtyRateKeys(event,this)"></td><td class="row-total">0</td><td class="no-print"><button type="button" class="row-del-btn" onclick="removeItemRow(this)" title="এই লাইনটি মুছে ফেলুন">✕</button></td>`;
+}
+function rfAddRowClick() { addNewRow(); calc(); }
+
 function calc() {
+    rfEnsureRows();
     let subtotal = 0;
     document.querySelectorAll('#item-tbody tr').forEach(row => {
         const qty = parseFloat(row.querySelector('.qty').value) || 0;
@@ -6626,7 +6638,7 @@ async function saveInvoiceToHistory(invoiceData) {
         }
     } catch(e) { console.warn('Order confirm SMS failed', e); }
     // 📍 অর্ডার এডিট করলে কাস্টমার পেজের টাকার অংক/তথ্যও আপডেট
-    try { if (existing && window.rfTrackSyncInfo) window.rfTrackSyncInfo(invoiceData); } catch(e) {}
+    try { if (window.rfTrackSyncAll) window.rfTrackSyncAll(invoiceData); } catch(e) {}
 }
 
 function saveCommission(invoiceData) {
@@ -6774,6 +6786,8 @@ async function reEditInvoice(invoiceNo) {
             if (p) { newRow.dataset.barcode = p.barcode; newRow.dataset.productId = p.id; }
         }
     });
+    // ✅ আগের ইনভয়েসে item না থাকলে (বা সব মোছা থাকলে) খালি লাইন দেওয়া হয়, যাতে আবার লেখা যায়
+    rfEnsureRows();
     // ✅ Photos সহ restore — IndexedDB থেকে পাওয়া data
     const photoBoxes = document.querySelectorAll('.photo-box');
     photoBoxes.forEach(box => {
@@ -12051,13 +12065,15 @@ document.addEventListener('click', (e) => {
 #rf-trk-ov details{margin-top:16px;border:1px solid #e0e7e7;border-radius:8px;padding:10px 12px;background:#fafcfc}
 #rf-trk-ov summary{font-weight:600;font-size:13px;color:#3d4d4d}
 #rf-trk-ov .rft-box *{scroll-behavior:smooth}
+#rf-trk-ov input[type=tel]{border:1px solid #d3dcdc;border-radius:8px;background:#fbfcfc;padding:10px 12px}
 @media (prefers-reduced-motion:reduce){#rf-trk-ov .rft-chip,#rf-trk-ov .rft-btn{transition:none}}
 </style>
 <script>
 (function(){
   /* ধাপগুলো এখানে — শুধু দরকারি ৬টা। বদলাতে চাইলে এই লিস্টই বদলান। */
-  var STEPS=['অর্ডার নিশ্চিত হয়েছে','কাজ চলছে','ফিনিশিং ও ফাইনাল','প্রোডাক্ট রেডি','গাড়িতে তোলা হয়েছে / পথে আছে','ডেলিভারি হয়েছে'];
-  var LEG=[0,1,1,1,2,3,3,3,4,5];            /* আগের ১০ ধাপ → নতুন ৬ ধাপ */
+  var STEPS=['অর্ডার নিশ্চিত হয়েছে','কাজ চলছে','ফিনিশিং ও ফাইনাল','প্রোডাক্ট রেডি','ডেলিভারি হয়েছে'];
+  var LEG=[0,1,1,1,2,3,3,3,4,5];            /* আগের ১০ ধাপ → ৬ ধাপ; তারপর f6() দিয়ে ৫ ধাপ ("পথে আছে" ধাপ বাদ) */
+  function f6(x){x=+x||0;return x>=5?4:x===4?3:x}
   var LAST=STEPS.length-1, READY=3;
   var TOK=/^[A-Za-z0-9]{16,64}$/, ov=null, pendingImg='', dirty=false, cache={};
   var PIN='<svg class="rft-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z"/><circle cx="12" cy="10" r="3"/></svg>';
@@ -12071,12 +12087,20 @@ document.addEventListener('click', (e) => {
   window.rfTrackLinkFor=function(inv){return inv&&inv.trackToken?link(inv.trackToken):''};
   function shopInfo(){var lg=localStorage.getItem('invoiceLogo')||'';return {name:localStorage.getItem('companyName')||'Hamida Furniture',phone:localStorage.getItem('compPhone')||'',fb:localStorage.getItem('rfTrackFb')||'https://www.facebook.com/hamidafurniture',group:localStorage.getItem('rfTrackGroup')||'',logo:(/^data:image\//.test(lg)&&lg.length<120000)?lg:''}}
   function stage0(st){return st==='Delivered'?LAST:(st==='Ready For Delivery'||st==='On Delivery')?READY:0}
-  function base(inv){return {no:String(inv.invoiceNo||''),name:inv.customerName||'',cphone:inv.customerPhone||'',addr:inv.customerAddress||'',items:(inv.items||[]).map(function(i){return String(i.desc||i.description||'').trim()}).filter(Boolean),steps:STEPS,stage:stage0(inv.deliveryStatus),eta:'',note:'',ups:[],cancelled:inv.deliveryStatus==='Cancelled',shop:shopInfo(),amt:amtOf(inv),hist:[{s:0,t:Date.now()}].concat(stage0(inv.deliveryStatus)>0?[{s:stage0(inv.deliveryStatus),t:Date.now()}]:[]),upd:Date.now()}}
+  function base(inv){return {no:String(inv.invoiceNo||''),name:inv.customerName||'',cphone:inv.customerPhone||'',addr:inv.customerAddress||'',items:(inv.items||[]).map(function(i){return String(i.desc||i.description||'').trim()}).filter(Boolean),steps:STEPS,stage:stage0(inv.deliveryStatus),eta:'',note:'',ups:[],cancelled:inv.deliveryStatus==='Cancelled',shop:shopInfo(),amt:amtOf(inv),v:2,rider:{n:inv.riderName||'',p:inv.riderPhone||''},map:inv.mapLink||'',mapq:mapQ(inv),hist:[{s:0,t:Date.now()}].concat(stage0(inv.deliveryStatus)>0?[{s:stage0(inv.deliveryStatus),t:Date.now()}]:[]),upd:Date.now()}}
+  function mapQ(inv){return [inv.customerAddress,inv.customerPS,inv.customerPO,inv.customerDistrict,'Bangladesh'].map(function(x){return String(x||'').trim()}).filter(Boolean).join(', ')}
   function num(x){var n=parseFloat(String(x==null?'':x).replace(/[^\d.\-]/g,''));return isNaN(n)?0:n}
   function amtOf(inv){var t=num(inv.grandTotal),p=num(inv.paid),d=(inv.due!==undefined&&inv.due!=='')?num(inv.due):Math.max(0,t-p);return {t:t,p:p,d:d}}
   /* ধাপ বদলালে সময় লিখে রাখে (কাস্টমার পেজের Tracking updates-এর জন্য); পিছিয়ে গেলে পরের ধাপের সময় মুছে যায় */
   function setStage(d,n,t){d.stage=n;d.hist=(d.hist||[]).filter(function(h){return h.s<n}).concat([{s:n,t:t||Date.now()}])}
-  function norm(d){var s=Array.isArray(d.steps)?d.steps:[];if(s.length===10){d.stage=LEG[Math.max(0,Math.min(9,+d.stage||0))]}d.steps=STEPS;d.stage=Math.max(0,Math.min(LAST,+d.stage||0));return d}
+  function norm(d){
+    var n=Array.isArray(d.steps)?d.steps.length:0;
+    if(d.v!==2&&(n===10||n===6)){
+      var mp=function(x){x=+x||0;if(n===10)x=LEG[Math.max(0,Math.min(9,x))];return f6(x)};
+      d.stage=mp(d.stage);var seen={},out=[];
+      (d.hist||[]).forEach(function(h){var k=mp(h.s);if(!seen[k]){seen[k]=1;out.push({s:k,t:h.t})}});d.hist=out;
+    }
+    d.v=2;d.steps=STEPS;d.stage=Math.max(0,Math.min(LAST,+d.stage||0));return d}
   function trim(d){var ups=d.ups||[],tot=0,i;for(i=0;i<ups.length;i++)tot+=(ups[i].img||'').length;for(i=0;i<ups.length&&tot>800000;i++){if(ups[i].img){tot-=ups[i].img.length;ups[i].img=''}}return d}
   function authed(){return !!(window.rfTrackAuthed&&window.rfTrackAuthed())}
   /* শুধু বদলানো ফিল্ড পাঠায় (দ্রুত); ডকুমেন্ট না থাকলে পুরোটা তৈরি করে */
@@ -12109,13 +12133,24 @@ document.addEventListener('click', (e) => {
   window.rfTrackEnsure=async function(inv){try{if(!inv||!inv.trackToken||!authed())return;var cur=await window.rfTrackGet(inv.trackToken);if(!cur)await window.rfTrackPut(inv.trackToken,base(inv))}catch(e){console.warn('track ensure',e)}};
   window.rfTrackSyncStatus=async function(inv){try{if(!inv||!inv.trackToken)return;var d=await window.rfTrackGet(inv.trackToken);if(!d)return;norm(d);var st=inv.deliveryStatus,c=false;
     if(st==='Delivered'){setStage(d,LAST)}else if(st==='Cancelled'){c=true}else if(st==='Ready For Delivery'||st==='On Delivery'){if(d.stage<READY)setStage(d,READY)}else if(d.stage>=READY){setStage(d,READY-1)}
-    d.cancelled=c;d.upd=Date.now();d.amt=amtOf(inv);cache[inv.trackToken]=d;await qsave(inv.trackToken,{stage:d.stage,hist:d.hist,amt:d.amt,cancelled:c,steps:STEPS,upd:d.upd})}catch(e){console.warn('track sync',e)}};
-  window.rfTrackSyncInfo=async function(inv){try{if(!inv||!inv.trackToken)return;var d=await window.rfTrackGet(inv.trackToken);if(!d)return;var b=base(inv),f={no:b.no,name:b.name,cphone:b.cphone,addr:b.addr,items:b.items,amt:b.amt};if(!d.hist||!d.hist.length){norm(d);f.hist=[{s:0,t:+d.upd||Date.now()}].concat(d.stage>0?[{s:d.stage,t:+d.upd||Date.now()}]:[])}await qsave(inv.trackToken,f)}catch(e){console.warn('track info',e)}};
+    d.cancelled=c;d.upd=Date.now();d.amt=amtOf(inv);cache[inv.trackToken]=d;await qsave(inv.trackToken,{stage:d.stage,hist:d.hist,amt:d.amt,cancelled:c,steps:STEPS,v:2,upd:d.upd})}catch(e){console.warn('track sync',e)}};
+  /* ইনভয়েস সেভ/এডিট হলেই কাস্টমার পেজের টাকা + তথ্য আপডেট (পেজ না থাকলে তৈরিও করে) */
+  window.rfTrackSyncAll=async function(inv){try{
+    if(!inv||!TOK.test(inv.trackToken||''))return;
+    var b=base(inv),f={no:b.no,name:b.name,cphone:b.cphone,addr:b.addr,mapq:b.mapq,items:b.items,amt:b.amt,upd:Date.now()};
+    if(!authed()||!window.rfTrackGet){qAdd(inv.trackToken,f);return}
+    var d=await window.rfTrackGet(inv.trackToken);
+    if(!d){await window.rfTrackPut(inv.trackToken,b);return}
+    var need=d.v!==2;norm(d);
+    if(need||!d.hist||!d.hist.length){if(!d.hist||!d.hist.length)d.hist=[{s:0,t:+d.upd||Date.now()}].concat(d.stage>0?[{s:d.stage,t:+d.upd||Date.now()}]:[]);f.stage=d.stage;f.hist=d.hist;f.steps=STEPS;f.v=2}
+    await qsave(inv.trackToken,f)}catch(e){console.warn('track sync all',e)}};
+  window.rfTrackSyncInfo=window.rfTrackSyncAll;
   function comp(file,max,q){return new Promise(function(ok,no){var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){var k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',q))};im.onerror=no;im.src=r.result};r.onerror=no;r.readAsDataURL(file)})}
   function close(){if(!ov)return;var o=ov;ov=null;o.classList.remove('on');setTimeout(function(){o.remove()},170)}
   function render(inv,d){
     pendingImg='';dirty=false;
     var L=link(inv.trackToken),ph=waPh(inv.customerPhone),sh=d.shop||shopInfo(),cur=+d.stage||0;
+    var rd=d.rider||{n:inv.riderName||'',p:inv.riderPhone||''},mp=d.map||inv.mapLink||'',riderOpts=Object.keys(riders()).map(function(k){return '<option value="'+esc(k)+'">'}).join('');
     var msg='আসসালামু আলাইকুম '+(inv.customerName||'')+'। আপনার অর্ডার (নং '+inv.invoiceNo+') এখন কোন পর্যায়ে আছে, ছবিসহ এই লিংকে দেখতে পারবেন: '+L+' — '+shopInfo().name;
     var chips=STEPS.map(function(s,i){return '<button type="button" class="rft-chip'+(i===cur?' on':'')+'" data-s="'+i+'">'+(i+1)+'. '+esc(s)+'</button>'}).join('');
     var ups=(d.ups||[]).map(function(u,i){return {u:u,i:i}}).reverse().map(function(x){return '<div class="rft-up"><span>'+esc(new Date(x.u.t).toLocaleDateString('bn-BD'))+' · '+esc(x.u.txt||'(ছবি)')+(x.u.img?' 🖼':'')+'</span><button type="button" data-del="'+x.i+'" aria-label="মুছুন">×</button></div>'}).join('');
@@ -12125,6 +12160,8 @@ document.addEventListener('click', (e) => {
      '<div class="rft-row"><a class="rft-btn wa" target="_blank" rel="noopener" href="'+(ph?'https://wa.me/'+ph+'?text='+encodeURIComponent(msg):'#')+'">WhatsApp-এ পাঠান</a><a class="rft-btn" href="'+(ph?'sms:+'+ph+'?body='+encodeURIComponent(msg):'#')+'">SMS পাঠান</a><button type="button" class="rft-btn" data-copy="1">লিংক কপি</button></div>'+
      '<label>এখন কোন পর্যায়ে (চাপলেই সেভ হবে)</label><div class="rft-chips">'+chips+'</div>'+
      '<div class="rft-grid"><div><label for="rft-eta">ডেলিভারির সম্ভাব্য তারিখ</label><input id="rft-eta" type="date" value="'+esc(d.eta||'')+'"></div><div><label for="rft-note">কাস্টমারকে ছোট নোট</label><input id="rft-note" type="text" value="'+esc(d.note||'')+'" placeholder="যেমন: গাড়ি খোঁজা হচ্ছে"></div></div>'+
+     '<label>ডেলিভারিম্যান / রাইডার (কাস্টমার পেজে ছোট বক্সে নাম ও নম্বর দেখাবে)</label><div class="rft-grid"><div><label for="rft-rn" style="margin-top:6px">রাইডারের নাম</label><input id="rft-rn" type="text" list="rft-rl" autocomplete="off" value="'+esc(rd.n||'')+'" placeholder="যেমন: রাসেদুল ইসলাম"></div><div><label for="rft-rp" style="margin-top:6px">রাইডারের মোবাইল নম্বর</label><input id="rft-rp" type="tel" inputmode="tel" value="'+esc(rd.p||'')+'" placeholder="01XXXXXXXXX"></div></div><datalist id="rft-rl">'+riderOpts+'</datalist>'+
+     '<label for="rft-map">গুগল ম্যাপ লিংক (ঐচ্ছিক — দিলে ড্রাইভার সরাসরি ওই লোকেশনে যাবে)</label><input id="rft-map" type="url" value="'+esc(mp||'')+'" placeholder="https://maps.app.goo.gl/...">'+
      '<label for="rft-txt">নতুন আপডেট (ঐচ্ছিক)</label><textarea id="rft-txt" rows="2" placeholder="যেমন: ফেব্রিক্স লাগানো হয়েছে"></textarea>'+
      '<div class="rft-row"><label class="rft-btn" for="rft-img" style="margin:0">+ ছবি যোগ</label><input id="rft-img" type="file" accept="image/*" hidden><span id="rft-prev"></span><button type="button" class="rft-btn pri" data-save="1">সংরক্ষণ ও আপডেট দিন</button></div>'+
      (ups?'<label>দেওয়া আপডেট</label>'+ups:'')+
@@ -12133,7 +12170,8 @@ document.addEventListener('click', (e) => {
     else ov.innerHTML=html;
     ov._inv=inv;ov._d=d;
   }
-  function fieldVals(){return {eta:($('rft-eta')||{}).value||'',note:((($('rft-note')||{}).value)||'').trim()}}
+  function riders(){try{return JSON.parse(localStorage.getItem('rfRiders')||'{}')||{}}catch(e){return {}}}
+  function fieldVals(){var g=function(id){return ((($(id)||{}).value)||'').trim()};return {eta:($('rft-eta')||{}).value||'',note:g('rft-note'),rn:g('rft-rn'),rp:g('rft-rp'),map:g('rft-map')}}
   function saveLinks(){try{var f=$('rft-fb'),g=$('rft-grp');if(f)localStorage.setItem('rfTrackFb',f.value.trim());if(g)localStorage.setItem('rfTrackGroup',g.value.trim())}catch(e){}}
   function errMsg(err){toast('❌ সংরক্ষণ হয়নি'+(err&&err.code?' ('+err.code+')':''),true);if(err&&err.code==='permission-denied')alert('Firestore rules-এ tracking অংশ যোগ করা হয়নি। Firebase Console → Firestore → Rules-এ বসিয়ে Publish করুন।')}
   /* ধাপে চাপলে সাথে সাথে বদলায়, সেভ হয় পেছনে */
@@ -12141,18 +12179,20 @@ document.addEventListener('click', (e) => {
     var inv=ov._inv,d=ov._d,prev=d.stage;if(n===prev)return;
     dirty=true;var prevHist=d.hist;setStage(d,n);
     var all=ov.querySelectorAll('.rft-chip');for(var i=0;i<all.length;i++)all[i].classList.toggle('on',i===n);
-    var v=fieldVals();d.eta=v.eta;d.note=v.note;d.upd=Date.now();cache[inv.trackToken]=d;
-    save(inv.trackToken,{stage:n,hist:d.hist,eta:v.eta,note:v.note,upd:d.upd},d).then(function(){toast('✅ ধাপ আপডেট হয়েছে')},function(err){
+    var v=fieldVals();d.eta=v.eta;d.note=v.note;d.rider={n:v.rn,p:v.rp};d.map=v.map;d.upd=Date.now();cache[inv.trackToken]=d;
+    save(inv.trackToken,{stage:n,hist:d.hist,eta:v.eta,note:v.note,rider:d.rider,map:v.map,steps:STEPS,v:2,upd:d.upd},d).then(function(){toast('✅ ধাপ আপডেট হয়েছে')},function(err){
       d.stage=prev;d.hist=prevHist;if(ov&&ov._d===d){var a=ov.querySelectorAll('.rft-chip');for(var j=0;j<a.length;j++)a[j].classList.toggle('on',j===prev)}errMsg(err)});
   }
   async function saveAll(btn){
     var inv=ov._inv,d=ov._d,v=fieldVals();saveLinks();
-    var b=base(inv);d.eta=v.eta;d.note=v.note;d.no=b.no;d.name=b.name;d.cphone=b.cphone;d.addr=b.addr;d.items=b.items;d.steps=STEPS;d.shop=shopInfo();d.amt=b.amt;if(!d.hist||!d.hist.length)d.hist=b.hist;d.cancelled=inv.deliveryStatus==='Cancelled';
+    var b=base(inv);d.rider={n:v.rn,p:v.rp};d.map=v.map;d.mapq=b.mapq;d.v=2;d.eta=v.eta;d.note=v.note;d.no=b.no;d.name=b.name;d.cphone=b.cphone;d.addr=b.addr;d.items=b.items;d.steps=STEPS;d.shop=shopInfo();d.amt=b.amt;if(!d.hist||!d.hist.length)d.hist=b.hist;d.cancelled=inv.deliveryStatus==='Cancelled';
     var tx=(($('rft-txt')||{}).value||'').trim();
     if(tx||pendingImg)d.ups=(d.ups||[]).concat([{t:Date.now(),txt:tx,img:pendingImg||''}]).slice(-30);
     trim(d);d.upd=Date.now();
     var old=btn.textContent;btn.disabled=true;btn.textContent='সেভ হচ্ছে…';
-    try{await save(inv.trackToken,{no:d.no,name:d.name,cphone:d.cphone,addr:d.addr,items:d.items,steps:STEPS,stage:d.stage,hist:d.hist,amt:d.amt,eta:d.eta,note:d.note,ups:d.ups||[],cancelled:d.cancelled,shop:d.shop,upd:d.upd},d);cache[inv.trackToken]=d;toast('✅ কাস্টমার পেজ আপডেট হয়েছে');if(ov&&ov._inv===inv)render(inv,d)}
+    try{inv.riderName=v.rn;inv.riderPhone=v.rp;inv.mapLink=v.map;try{if(v.rn&&v.rp){var rr=riders();rr[v.rn]=v.rp;localStorage.setItem('rfRiders',JSON.stringify(rr))}}catch(e){}
+      try{await idbSaveInvoice(inv);saveCloudData()}catch(e){}
+      await save(inv.trackToken,{no:d.no,name:d.name,cphone:d.cphone,addr:d.addr,mapq:d.mapq,rider:d.rider,map:d.map,v:2,items:d.items,steps:STEPS,stage:d.stage,hist:d.hist,amt:d.amt,eta:d.eta,note:d.note,ups:d.ups||[],cancelled:d.cancelled,shop:d.shop,upd:d.upd},d);cache[inv.trackToken]=d;toast('✅ কাস্টমার পেজ আপডেট হয়েছে');if(ov&&ov._inv===inv)render(inv,d)}
     catch(err){errMsg(err);btn.disabled=false;btn.textContent=old}
   }
   window.rfOpenTrack=async function(invNo){
@@ -12163,7 +12203,7 @@ document.addEventListener('click', (e) => {
     render(inv,d);                               /* সাথে সাথে খোলে, নেটওয়ার্কের জন্য অপেক্ষা করে না */
     try{
       var cur=await window.rfTrackGet(tok);
-      if(cur){norm(cur);cache[tok]=cur;if(ov&&ov._inv===inv&&!dirty)render(inv,cur);if(!cur.amt||!cur.hist)window.rfTrackSyncInfo(inv)}
+      if(cur){norm(cur);cache[tok]=cur;if(ov&&ov._inv===inv&&!dirty)render(inv,cur);window.rfTrackSyncAll(inv)}
       else{await window.rfTrackPut(tok,d);cache[tok]=d}
     }catch(err){if(err&&err.code==='permission-denied')alert('Firestore rules-এ tracking অংশ যোগ করা হয়নি। Firebase Console → Firestore → Rules-এ দেওয়া নিয়ম বসিয়ে Publish করুন।')}
   };
@@ -12176,7 +12216,8 @@ document.addEventListener('click', (e) => {
     else if(b.dataset.save){saveAll(b)}
     else if(b.dataset.del!==undefined){var inv=ov._inv,d=ov._d,u=(d.ups||[]).slice();u.splice(+b.dataset.del,1);d.ups=u;d.upd=Date.now();render(inv,d);save(inv.trackToken,{ups:u,upd:d.upd},d).then(function(){toast('✅ মুছে ফেলা হয়েছে')},errMsg)}
   });
-  document.addEventListener('input',function(e){if(ov&&ov.contains(e.target))dirty=true});
+  document.addEventListener('input',function(e){if(ov&&ov.contains(e.target)){dirty=true;
+    if(e.target.id==='rft-rn'){var r=riders()[e.target.value.trim()],pp=$('rft-rp');if(r&&pp&&!pp.value.trim())pp.value=r}}});
   document.addEventListener('change',function(e){
     if(!ov||e.target.id!=='rft-img'||!e.target.files[0])return;
     comp(e.target.files[0],640,0.7).then(function(x){pendingImg=x;var p=$('rft-prev');if(p)p.innerHTML='<img src="'+x+'" alt="">'},function(){toast('ছবি পড়া যায়নি',true)});
