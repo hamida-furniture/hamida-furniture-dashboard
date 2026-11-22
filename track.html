@@ -98,6 +98,7 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
 .cust .tx1{flex:1;min-width:0;word-break:break-word;align-self:center}
 .cust div.col{display:block;padding:0;flex:1;min-width:0}
 .cust .adr{display:block;word-break:break-word}
+.cust .gok{display:block;color:#0e8f5e;font-size:12.5px;font-weight:600;margin:3px 0 2px}
 .cust .mapbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;padding:0}
 .mbtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:600;font-size:14px;border-radius:10px;padding:7px 12px;border:1.5px solid var(--green);color:var(--green);background:transparent}
 .mbtn svg{width:16px;height:16px;margin:0;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -187,7 +188,7 @@ function sect(cls){ return h('div', 'card ' + cls) }
 function kv(label, valNode, full, big){ const c = h('div', full ? 'full' : ''); c.appendChild(h('div', 'lab', label)); if (typeof valNode === 'string') c.appendChild(h('div', 'val' + (big ? ' lg' : ''), valNode)); else c.appendChild(valNode); return c }
 function render(d){
   norm(d);
-  const sig = JSON.stringify([d.upd, d.stage, d.cancelled, (d.ups || []).length, d.amt, d.name, d.cphone, d.addr, d.rider, d.map, d.mapq]);
+  const sig = JSON.stringify([d.upd, d.stage, d.cancelled, (d.ups || []).length, d.amt, d.name, d.cphone, d.addr, d.rider, d.map, d.mapq, d.confirmedGeo]);
   if (sig === lastSig && app.firstChild && !app.querySelector('.sk')) return;
   lastSig = sig;
   const steps = d.steps, N = steps.length, st = Math.max(0, Math.min(N - 1, +d.stage || 0)), shop = d.shop || {}, fin = st === N - 1 && !d.cancelled;
@@ -239,12 +240,14 @@ function render(d){
     if (d.addr) {
       const r = h('div'); r.appendChild(ico('', I.pin));
       const col = h('div', 'col'); col.appendChild(h('span', 'adr', d.addr));
-      const q = encodeURIComponent(d.mapq || d.addr), custom = okMap(d.map) ? d.map : '';
+      const cg = d.confirmedGeo && d.confirmedGeo.lat ? d.confirmedGeo : null;
+      const dest = cg ? (cg.lat + ',' + cg.lng) : encodeURIComponent(d.mapq || d.addr), custom = okMap(d.map) ? d.map : '';
+      if (cg) col.appendChild(h('span', 'gok', '✓ সঠিক লোকেশন শনাক্ত হয়েছে — ডেলিভারি আরও নির্ভুল হবে'));
       const bt = h('div', 'mapbtns');
       const a1 = document.createElement('a'); a1.className = 'mbtn'; a1.target = '_blank'; a1.rel = 'noopener noreferrer';
-      a1.href = custom || 'https://www.google.com/maps/search/?api=1&query=' + q; a1.innerHTML = SV(I.pin); a1.appendChild(document.createTextNode('ম্যাপে দেখুন'));
+      a1.href = custom || 'https://www.google.com/maps/search/?api=1&query=' + dest; a1.innerHTML = SV(I.pin); a1.appendChild(document.createTextNode('ম্যাপে দেখুন'));
       const a2 = document.createElement('a'); a2.className = 'mbtn pri'; a2.target = '_blank'; a2.rel = 'noopener noreferrer';
-      a2.href = custom || 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=' + q; a2.innerHTML = SV(I.nav); a2.appendChild(document.createTextNode('দিকনির্দেশ (Get Direction)'));
+      a2.href = custom || 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=' + dest; a2.innerHTML = SV(I.nav); a2.appendChild(document.createTextNode('দিকনির্দেশ (Get Direction)'));
       bt.appendChild(a1); bt.appendChild(a2); col.appendChild(bt); r.appendChild(col); cu.appendChild(r);
     }
     if (itemsTxt) { const r = h('div'); r.appendChild(ico('', I.box)); r.appendChild(h('span', 'tx1', itemsTxt)); cu.appendChild(r) }
@@ -311,16 +314,48 @@ function cacheSet(d){ try { const c = JSON.parse(JSON.stringify(d)); (c.ups || [
 if (!/^[A-Za-z0-9]{16,64}$/.test(T)) { fail('লিংকটি সঠিক নয়') }
 else {
   const c0 = cacheGet(); if (c0) render(c0);           // আগে দেখা থাকলে সাথে সাথে দেখায়
-  let getDoc, doc, db, got = !!c0;
+  let getDoc, doc, updateDoc, db, got = !!c0, geoTried = false;
   const boot = Promise.all([
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")
-  ]).then(([a, f]) => { getDoc = f.getDoc; doc = f.doc; db = f.getFirestore(a.initializeApp(CFG)) });
+  ]).then(([a, f]) => { getDoc = f.getDoc; doc = f.doc; updateDoc = f.updateDoc; db = f.getFirestore(a.initializeApp(CFG)) });
+  function haversine(a, b, c, dd) { const r = x => x * Math.PI / 180, q = Math.sin(r(c - a) / 2) ** 2 + Math.cos(r(a)) * Math.cos(r(c)) * Math.sin(r(dd - b) / 2) ** 2; return 12742 * Math.asin(Math.sqrt(q)) }  // কিমি
+  async function geocodeArea(q) {
+    const ck = 'rfGeo:' + q; let c = null; try { c = JSON.parse(localStorage.getItem(ck) || 'null') } catch (e) {}
+    if (c) return c;
+    try {
+      const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 7000);
+      const r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=bd&accept-language=bn,en&q=' + encodeURIComponent(q), {signal: ac.signal}); clearTimeout(tm);
+      const j = await r.json();
+      if (j && j[0] && j[0].boundingbox) {
+        const bb = j[0].boundingbox.map(Number), diag = haversine(bb[0], bb[2], bb[1], bb[3]);
+        const o = {lat: +j[0].lat, lng: +j[0].lon, radius: Math.min(45, Math.max(2, diag / 2 + 1))};
+        try { localStorage.setItem(ck, JSON.stringify(o)) } catch (e) {}
+        return o;
+      }
+    } catch (e) {}
+    return null;
+  }
+  // কাস্টমার (বা বাড়ির লোক) নিজের ফোন থেকে লিংকটা খুলে থাকলে, আর তার লোকেশন ঠিকানার কাছাকাছি হলে — সেই সঠিক লোকেশনটাই চুপচাপ সেভ হয়, যাতে ডেলিভারিম্যান সরাসরি সেখানে যেতে পারে। দূর থেকে (যেমন প্রবাসে) খুললে কিছুই সেভ হয় না, অনুমতি না দিলেও কিছু হয় না।
+  async function tryConfirmGeo(d) {
+    if (geoTried || d.confirmedGeo || d.cancelled || !navigator.geolocation || !updateDoc) return;
+    geoTried = true;
+    const q = (d.mapq || d.addr || '').trim(); if (!q) return;
+    try {
+      const area = await geocodeArea(q); if (!area) return;
+      const pos = await new Promise((ok, no) => navigator.geolocation.getCurrentPosition(ok, no, {enableHighAccuracy: false, timeout: 8000, maximumAge: 300000}));
+      const dist = haversine(pos.coords.latitude, pos.coords.longitude, area.lat, area.lng);
+      if (dist <= area.radius) {
+        await updateDoc(doc(db, 'tracking', T), {confirmedGeo: {lat: +pos.coords.latitude.toFixed(5), lng: +pos.coords.longitude.toFixed(5), at: Date.now(), acc: Math.round(pos.coords.accuracy || 0)}});
+        const d2 = Object.assign({}, d, {confirmedGeo: {lat: +pos.coords.latitude.toFixed(5), lng: +pos.coords.longitude.toFixed(5)}}); cacheSet(d2); render(d2);
+      }
+    } catch (e) { /* অনুমতি নেই / দূরে / নেট নেই — চুপচাপ বাদ */ }
+  }
   async function load(first){
     try {
       await boot;
       const s = await getDoc(doc(db, 'tracking', T));
-      if (s.exists()) { const d = s.data(); got = true; cacheSet(d); render(d) }
+      if (s.exists()) { const d = s.data(); got = true; cacheSet(d); render(d); setTimeout(() => tryConfirmGeo(d), 1500) }
       else if (first && !got) fail('এই লিংকে কোনো অর্ডার পাওয়া যায়নি');
     } catch (e) { console.error('tracking load', e && e.code); if (first && !got) fail('এখন লোড করা যাচ্ছে না, একটু পরে আবার চেষ্টা করুন') }
   }

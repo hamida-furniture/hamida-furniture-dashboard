@@ -2634,6 +2634,7 @@ body.dark-mode .ai-result-value, body.dark-full .ai-result-value { background:#2
         <li><a onclick="showPage('dashboard')" id="menu-dashboard" class="active"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg></span> Dashboard<span class="rf-lock-badge" id="lock-dashboard" style="display:none;">🔒</span></a></li>
         <li><a onclick="showPage('invoice')" id="menu-invoice"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></span> Create Invoice<span class="rf-lock-badge" id="lock-invoice" style="display:none;">🔒</span></a></li>
         <li><a onclick="showPage('delivery')" id="menu-delivery"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="14" height="11"/><path d="M15 9h4l3 3.5V17h-7z"/><circle cx="6" cy="18.5" r="1.8"/><circle cx="17.5" cy="18.5" r="1.8"/></svg></span> Delivery Settlement<span class="rf-lock-badge" id="lock-delivery" style="display:none;">🔒</span></a></li>
+        <li><a onclick="rfRunOpen()" id="menu-runs"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span> ড্রাইভার লিস্ট <span id="rf-run-badge"></span></a></li>
         <li><a onclick="showPage('attendance')" id="menu-attendance"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8.5 15l2 2 4-4"/></svg></span> Attendance<span class="rf-lock-badge" id="lock-attendance" style="display:none;">🔒</span></a></li>
         <li><a onclick="showPage('stock')" id="menu-stock"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></span> Stock & Inventory<span class="rf-lock-badge" id="lock-stock" style="display:none;">🔒</span></a></li>
     </ul>
@@ -9931,7 +9932,7 @@ import {
     onAuthStateChanged, setPersistence, browserSessionPersistence, sendPasswordResetEmail, updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-    getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, getDocs, onSnapshot, query, where, documentId
+    getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, getDocs, onSnapshot, query, where, documentId, deleteField, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ============================================================
@@ -9986,6 +9987,30 @@ window.rfTrackGet = async function (tok) {
     const snap = await getDoc(doc(db, 'tracking', String(tok)));
     return snap.exists() ? snap.data() : null;
 };
+// 🚚 ড্রাইভার ডেলিভারি লিস্ট: runs/{গোপন কোড} (ড্রাইভার পড়ে), runsPrivate (শুধু স্টাফ), runReports + runVoice (ড্রাইভার লেখে, স্টাফ পড়ে)
+window.rfRunApi = (function () {
+    const need = () => { if (!auth.currentUser) throw new Error('Firebase-এ লগইন করা নেই'); };
+    const clean = (o) => JSON.parse(JSON.stringify(o));
+    const rows = (s) => s.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+    return {
+        DEL: deleteField(),
+        async list() { need(); return rows(await getDocs(collection(db, 'runs'))); },
+        async set(id, data) { need(); await setDoc(doc(db, 'runs', String(id)), clean(data)); },
+        async update(id, f) {
+            need();
+            const o = {}; Object.keys(f).forEach((k) => { o[k] = f[k] === window.rfRunApi.DEL ? deleteField() : JSON.parse(JSON.stringify(f[k])); });
+            await updateDoc(doc(db, 'runs', String(id)), o);
+        },
+        async del(id) { need(); await deleteDoc(doc(db, 'runs', String(id))); try { await deleteDoc(doc(db, 'runsPrivate', String(id))); } catch (e) {} },
+        async getPriv(id) { need(); const s = await getDoc(doc(db, 'runsPrivate', String(id))); return s.exists() ? s.data() : null; },
+        async setPriv(id, data) { need(); await setDoc(doc(db, 'runsPrivate', String(id)), clean(data)); },
+        async ofRun(id) { need(); return rows(await getDocs(query(collection(db, 'runReports'), where('run', '==', String(id))))); },
+        async pending() { need(); return rows(await getDocs(query(collection(db, 'runReports'), where('applied', '==', false)))); },
+        async voice(id) { need(); const s = await getDoc(doc(db, 'runVoice', String(id))); return s.exists() ? s.data() : null; },
+        async markApplied(id) { need(); await updateDoc(doc(db, 'runReports', String(id)), { applied: true, appliedAt: Date.now() }); },
+        async notify(id, msg) { need(); await updateDoc(doc(db, 'runs', String(id)), { notices: arrayUnion({ msg: String(msg).trim().slice(0, 300), at: Date.now() }) }); }
+    };
+})();
 
 // 🔒 Force session-only persistence BEFORE Firebase gets a chance to
 // auto-restore any previously saved session. This is what actually stops
@@ -12281,6 +12306,310 @@ document.addEventListener('click', (e) => {
       var setPh=function(){ si.setAttribute('placeholder',mq.matches?'Search invoice, phone or sales person':full); };
       setPh(); mq.addListener&&mq.addListener(setPh); }
   });
+})();
+</script>
+
+<!-- ===================== DRIVER DELIVERY LIST (ড্রাইভার লিস্ট) ===================== -->
+<style id="rf-runs-css">
+#rfRunModal .modal-content{max-width:980px;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:92vh}
+#rfRunModal .rr-head{display:flex;align-items:center;gap:10px;padding:14px 20px;background:linear-gradient(135deg,#0f2f3a,#0b5558);color:#fff;border-bottom:3px solid #c9a24a}
+#rfRunModal .rr-head h3{margin:0;font-size:17px;flex:1}
+#rfRunModal .rr-head .x{cursor:pointer;font-size:26px;line-height:1;padding:0 6px;opacity:.85}
+#rfRunModal .rr-body{padding:18px 20px 22px;overflow-y:auto;font-family:'Segoe UI','Hind Siliguri','Noto Sans Bengali',Arial,sans-serif}
+#rfRunModal .rr-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+#rfRunModal .rr-bar .sp{flex:1}
+#rfRunModal button.rr{border:1px solid #c5d0d0;background:#fff;color:#1c2b2b;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s,box-shadow .15s}
+#rfRunModal button.rr:hover{background:#f3f8f8;box-shadow:0 3px 8px rgba(0,0,0,.08)}
+#rfRunModal button.rr.pri{background:linear-gradient(135deg,#0f4a52,#0b6e6e);color:#fff;border-color:#0b5558}
+#rfRunModal button.rr.ok{background:#1fa855;color:#fff;border-color:#1fa855}
+#rfRunModal button.rr.dng{color:#c0392b;border-color:#e8b4ae}
+#rfRunModal button.rr.sm{padding:5px 10px;font-size:12px}
+#rfRunModal button.rr[disabled]{opacity:.55;cursor:default}
+#rfRunModal .rr-note{background:#fff7e0;border:1px solid #ecd48a;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#rfRunModal .rr-note b{flex:1}
+#rfRunModal .rr-card{border:1px solid #dbe4e4;border-radius:12px;padding:14px 16px;margin-bottom:12px;background:#fff;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+#rfRunModal .rr-card .in{flex:1;min-width:200px}
+#rfRunModal .rr-card h4{margin:0 0 3px;font-size:16px;color:#0b3d3d}
+#rfRunModal .rr-card .mt{font-size:12.5px;color:#5a6967}
+#rfRunModal .rr-card .ac{display:flex;gap:6px;flex-wrap:wrap}
+#rfRunModal .pill{display:inline-block;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;margin-right:4px}
+#rfRunModal .pill.o{background:#e1f4e8;color:#16803c}#rfRunModal .pill.l{background:#eceff0;color:#58656a}#rfRunModal .pill.d{background:#dff1ef;color:#0b6e6e}#rfRunModal .pill.w{background:#fbe9cc;color:#a45a06}#rfRunModal .pill.r{background:#fdeaea;color:#c0392b}
+#rfRunModal .rr-form{display:grid;grid-template-columns:1fr 1fr 140px;gap:12px;margin-bottom:14px}
+@media(max-width:640px){#rfRunModal .rr-form{grid-template-columns:1fr}}
+#rfRunModal label.l{display:block;font-size:12.5px;font-weight:700;color:#4a5a5a;margin-bottom:4px}
+#rfRunModal input[type=text],#rfRunModal input[type=tel],#rfRunModal select{width:100%;border:1px solid #d3dcdc;border-radius:8px;padding:9px 11px;font-size:14px;background:#fbfcfc;font-family:inherit;box-sizing:border-box}
+#rfRunModal .rr-pick{border:1px solid #dbe4e4;border-radius:10px;max-height:340px;overflow-y:auto;margin:8px 0 14px}
+#rfRunModal .rr-pick label{display:flex;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid #eef2f2;cursor:pointer;font-size:13.5px}
+#rfRunModal .rr-pick label:hover{background:#f6fafa}
+#rfRunModal .rr-pick .n{font-weight:700;min-width:52px}
+#rfRunModal .rr-pick .a{color:#5a6967;font-size:12.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#rfRunModal .rr-pick .d{font-weight:700;color:#b25a00;white-space:nowrap}
+#rfRunModal .rr-row{border:1px solid #dbe4e4;border-radius:12px;padding:12px 14px;margin-bottom:10px;background:#fff}
+#rfRunModal .rr-row.open{border-color:#9fd6b2;background:#f7fcf9}#rfRunModal .rr-row.done{background:#f3f8f8}
+#rfRunModal .rr-row .t{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#rfRunModal .rr-row .no{width:28px;height:28px;border-radius:8px;background:#0b6e6e;color:#fff;font-weight:700;display:grid;place-items:center;font-size:13px}
+#rfRunModal .rr-row .nm{flex:1;min-width:160px;font-weight:700}
+#rfRunModal .rr-row .nm small{display:block;font-weight:400;color:#5a6967}
+#rfRunModal .rr-row .ac{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center}
+#rfRunModal .rr-row input.nt{flex:1;min-width:160px;border:1px solid #d3dcdc;border-radius:8px;padding:6px 10px;font-size:13px;font-family:inherit}
+#rfRunModal .rr-rep{margin-top:10px;background:#fff;border:1px dashed #b9cccc;border-radius:10px;padding:10px 12px;font-size:13.5px}
+#rfRunModal .rr-rep audio{width:100%;margin-top:8px;height:36px}
+#rfRunModal .rr-empty{text-align:center;color:#6a7a78;padding:30px 10px}
+#rf-run-badge{margin-left:auto;background:#e74c3c;color:#fff;border-radius:10px;font-size:11px;font-weight:700;padding:1px 7px;display:none}
+body.dark-mode #rfRunModal .rr-body,body.dark-full #rfRunModal .rr-body{color:#e0e0e0}
+body.dark-mode #rfRunModal .rr-card,body.dark-mode #rfRunModal .rr-row,body.dark-full #rfRunModal .rr-card,body.dark-full #rfRunModal .rr-row{background:#1a1d27;border-color:#2e3342}
+</style>
+<div id="rfRunModal" class="modal">
+  <div class="modal-content">
+    <div class="rr-head"><h3 id="rr-title">🚚 ড্রাইভার ডেলিভারি লিস্ট</h3><span class="x" data-rr="close" aria-label="Close">&times;</span></div>
+    <div class="rr-body" id="rr-body"></div>
+  </div>
+</div>
+<script id="rf-runs-js">
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var S={runs:[],view:'list',id:null,priv:null,reps:[],pend:[],invs:[],picked:[],q:'',busy:false};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function money(n){return '৳ '+(parseFloat(n)||0).toLocaleString('en-IN')}
+  function api(){if(!window.rfRunApi||!window.rfTrackAuthed||!window.rfTrackAuthed())throw new Error('Firebase-এ লগইন করা নেই');return window.rfRunApi}
+  function tok(){var a=new Uint8Array(26);crypto.getRandomValues(a);return Array.prototype.map.call(a,function(x){return 'abcdefghijklmnopqrstuvwxyz0123456789'.charAt(x%36)}).join('')}
+  function key(no){return 'k'+String(no).replace(/[^A-Za-z0-9]/g,'_')}
+  function dueOf(inv){var g=parseFloat(inv.grandTotal)||0,p=parseFloat(inv.paid)||0;return Math.max(0,g-p)}
+  function say(m,bad){var o=$('rr-toast');if(o)o.remove();var t=document.createElement('div');t.id='rr-toast';t.textContent=m;t.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:'+(bad?'#c0392b':'#0b4f52')+';color:#fff;padding:10px 20px;border-radius:24px;font-size:14px;font-weight:600;z-index:5000;box-shadow:0 8px 24px rgba(0,0,0,.25)';document.body.appendChild(t);setTimeout(function(){t.remove()},2600)}
+  function linkOf(id){var u=(typeof getSiteUrl==='function'?getSiteUrl():'');return u?u+'/driver.html?r='+id:''}
+  function waPh(p){var d=String(p||'').split(/[,\/\n]/)[0].replace(/\D/g,'');if(d.indexOf('00')===0)d=d.slice(2);else if(/^0\d{10}$/.test(d))d='88'+d;else if(/^1\d{9}$/.test(d))d='880'+d;return d}
+  function msgOf(r){return 'আসসালামু আলাইকুম '+(r.name||'')+'। আজকের ডেলিভারি লিস্ট ('+Object.keys(r.items||{}).length+' টি): '+linkOf(r.id)+' — অফিস যেটা আনলক করবে শুধু সেটাই দেখতে পাবেন। — '+(r.shop||'')}
+  function when(t){var d=new Date(t);return isNaN(d)?'':d.toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+  function cnt(r){var o=0,l=0;Object.keys(r.items||{}).forEach(function(k){if(r.items[k].lock===false)o++;else l++});return {o:o,l:l}}
+
+  async function loadRuns(){S.runs=(await api().list()).sort(function(a,b){return (b.created||0)-(a.created||0)});S.pend=await api().pending()}
+  async function loadRun(){
+    var r=S.runs.find(function(x){return x.id===S.id});if(!r){S.view='list';return}
+    S.priv=(await api().getPriv(S.id))||{map:{}};S.reps=await api().ofRun(S.id);
+    var all=await idbGetAll();S.invMap={};all.forEach(function(i){S.invMap[String(i.invoiceNo)]=i});
+  }
+  async function refresh(keep){
+    try{await loadRuns();if(S.view==='run')await loadRun();if(S.view==='new'||S.view==='add')await loadInvs()}catch(e){console.warn(e);say(e.message||'লোড হয়নি',true)}
+    draw();badge();
+  }
+  async function loadInvs(){var all=await idbGetAll();S.invs=all.filter(function(i){var s=String(i.deliveryStatus||'');return s!=='Delivered'&&s!=='Cancelled'}).sort(function(a,b){return (parseInt(b.invoiceNo)||0)-(parseInt(a.invoiceNo)||0)})}
+
+  /* ───── আঁকা ───── */
+  function draw(){
+    var b=$('rr-body');if(!b)return;
+    if(S.view==='list')b.innerHTML=listHtml();
+    else if(S.view==='new'||S.view==='add')b.innerHTML=pickHtml();
+    else b.innerHTML=runHtml();
+    $('rr-title').textContent=S.view==='run'?'🚚 লিস্ট — '+(curRun()?curRun().name||'ড্রাইভার':''):S.view==='new'?'🚚 নতুন ড্রাইভার লিস্ট':S.view==='add'?'🚚 ইনভয়েস যোগ করুন':'🚚 ড্রাইভার ডেলিভারি লিস্ট';
+  }
+  function curRun(){return S.runs.find(function(x){return x.id===S.id})}
+  function listHtml(){
+    var h='<div class="rr-bar"><button class="rr pri" data-rr="new">＋ নতুন ড্রাইভার লিস্ট</button><button class="rr" data-rr="refresh">↻ রিফ্রেশ</button><span class="sp"></span></div>';
+    if(S.pend.length){var first=S.pend[0].run;h+='<div class="rr-note"><b>🔔 ড্রাইভারের '+S.pend.length+'টি জমা দেওয়া হিসাব বুঝে নেওয়া বাকি</b><button class="rr pri sm" data-rr="open" data-id="'+esc(first)+'">দেখুন</button></div>'}
+    if(!S.runs.length)return h+'<div class="rr-empty">এখনো কোনো ড্রাইভার লিস্ট নেই।<br>“নতুন ড্রাইভার লিস্ট” চেপে ড্রাইভারের নাম দিয়ে ইনভয়েস বেছে নিন।</div>';
+    S.runs.forEach(function(r){
+      var c=cnt(r),exp=r.exp&&Date.now()>r.exp,pend=S.pend.filter(function(p){return p.run===r.id}).length;
+      h+='<div class="rr-card"><div class="in"><h4>'+esc(r.name||'ড্রাইভার')+(r.phone?' <span style="font-weight:400;font-size:13px;color:#5a6967">· '+esc(r.phone)+'</span>':'')+'</h4><div class="mt"><span class="pill o">আনলক '+c.o+'</span><span class="pill l">লক '+c.l+'</span>'+(pend?'<span class="pill w">'+pend+'টি হিসাব বাকি</span>':'')+(exp?'<span class="pill r">মেয়াদ শেষ</span>':'')+'</div><div class="mt" style="margin-top:4px">তৈরি '+when(r.created)+' · মেয়াদ '+when(r.exp)+'</div></div><div class="ac"><button class="rr pri sm" data-rr="open" data-id="'+esc(r.id)+'">পরিচালনা</button><button class="rr sm" data-rr="copy" data-id="'+esc(r.id)+'">লিংক কপি</button><button class="rr sm" data-rr="sms" data-id="'+esc(r.id)+'">SMS</button><button class="rr ok sm" data-rr="wa" data-id="'+esc(r.id)+'">WhatsApp</button></div></div>';
+    });
+    return h;
+  }
+  function pickHtml(){
+    var add=S.view==='add',r=curRun(),have=add&&S.priv?S.priv.map:{},q=S.q.toLowerCase(),h='';
+    if(!add)h+='<div class="rr-form"><div><label class="l">ড্রাইভার / ডেলিভারিম্যানের নাম</label><input type="text" id="rr-dn" list="rr-dl" autocomplete="off" placeholder="যেমন: রাসেদুল ইসলাম" value="'+esc(S.dn||'')+'"></div><div><label class="l">মোবাইল নম্বর</label><input type="tel" id="rr-dp" inputmode="tel" placeholder="01XXXXXXXXX" value="'+esc(S.dp||'')+'"></div><div><label class="l">লিংকের মেয়াদ</label><select id="rr-dd"><option value="1">১ দিন</option><option value="2">২ দিন</option><option value="3" selected>৩ দিন</option><option value="7">৭ দিন</option></select></div></div><datalist id="rr-dl">'+ridersOpts()+'</datalist>';
+    h+='<label class="l">ইনভয়েস বাছুন (যেগুলো এখনো ডেলিভারি হয়নি) — সব লক অবস্থায় যোগ হবে</label><input type="text" id="rr-q" placeholder="ইনভয়েস নং, নাম, ফোন বা ঠিকানা দিয়ে খুঁজুন" value="'+esc(S.q)+'"><div class="rr-pick">';
+    var n=0;S.invs.forEach(function(i){
+      if(have[key(i.invoiceNo)])return;
+      var hay=(i.invoiceNo+' '+(i.customerName||'')+' '+(i.customerPhone||'')+' '+(i.customerAddress||'')).toLowerCase();if(q&&hay.indexOf(q)<0)return;
+      n++;h+='<label><input type="checkbox" data-pk="'+esc(i.invoiceNo)+'"'+(S.picked.indexOf(String(i.invoiceNo))>=0?' checked':'')+'><span class="n">#'+esc(i.invoiceNo)+'</span><span>'+esc(i.customerName||'')+'</span><span class="a">'+esc(i.customerAddress||'')+'</span><span class="d">'+money(dueOf(i))+'</span></label>';
+    });
+    if(!n)h+='<div class="rr-empty">কোনো ইনভয়েস পাওয়া যায়নি</div>';
+    h+='</div><div class="rr-bar"><button class="rr" data-rr="'+(add?'backrun':'back')+'">← ফিরে যান</button><span class="sp"></span><span id="rr-pc" style="font-size:13px;color:#5a6967">'+S.picked.length+'টি বাছা হয়েছে</span><button class="rr pri" data-rr="'+(add?'addsave':'create')+'"'+(S.busy?' disabled':'')+'>'+(add?'যোগ করুন':'লিস্ট তৈরি করুন')+'</button></div>';
+    return h;
+  }
+  function ridersOpts(){try{var m=JSON.parse(localStorage.getItem('rfRiders')||'{}');return Object.keys(m).map(function(k){return '<option value="'+esc(k)+'">'}).join('')}catch(e){return ''}}
+  function runHtml(){
+    var r=curRun();if(!r)return '<div class="rr-empty">লিস্টটি পাওয়া যায়নি</div>';
+    var map=(S.priv&&S.priv.map)||{},keys=Object.keys(map).sort(function(a,b){return (map[a].o||0)-(map[b].o||0)}),c=cnt(r);
+    var h='<div class="rr-bar"><button class="rr" data-rr="back">← সব লিস্ট</button><span class="sp"></span><button class="rr sm" data-rr="copy" data-id="'+esc(r.id)+'">লিংক কপি</button><button class="rr sm" data-rr="sms" data-id="'+esc(r.id)+'">SMS</button><button class="rr ok sm" data-rr="wa" data-id="'+esc(r.id)+'">WhatsApp</button></div>';
+    h+='<div class="rr-bar"><span class="pill o">আনলক '+c.o+'</span><span class="pill l">লক '+c.l+'</span><span style="font-size:12.5px;color:#5a6967">মেয়াদ '+when(r.exp)+'</span><span class="sp"></span><button class="rr sm" data-rr="add">＋ ইনভয়েস যোগ</button><button class="rr sm" data-rr="notify">📨 ড্রাইভারকে বার্তা</button><button class="rr sm" data-rr="unlockall">সব আনলক</button><button class="rr sm" data-rr="lockall">সব লক</button><button class="rr sm" data-rr="extend">মেয়াদ +১ দিন</button><button class="rr dng sm" data-rr="del">লিস্ট মুছুন</button></div>';
+    if(!keys.length)return h+'<div class="rr-empty">এই লিস্টে কিছু নেই</div>';
+    keys.forEach(function(k){
+      var m=map[k],it=(r.items||{})[k],inv=S.invMap[String(m.inv)]||{},rep=S.reps.find(function(x){return x.key===k});
+      var nm=inv.customerName||'—',ad=inv.customerAddress||'';
+      if(it){
+        var op=it.lock===false;
+        h+='<div class="rr-row'+(op?' open':'')+'"><div class="t"><div class="no">'+(m.o||'')+'</div><div class="nm">#'+esc(m.inv)+' — '+esc(nm)+'<small>'+esc(ad)+'</small></div><div><b>'+money(dueOf(inv))+'</b> <span class="pill '+(op?'o':'l')+'">'+(op?'🔓 আনলক':'🔒 লক')+'</span>'+(it.geo&&it.geo.lv==='exact'?' <span class="pill d">📍 লোকেশন নিশ্চিত</span>':'')+'</div></div><div class="ac">'+(op?'<input class="nt" data-bz="'+esc(k)+'" placeholder="কোন বাজারে/ঘাটে আগে আসবে (ঐচ্ছিক)" value="'+esc(it.bazar||'')+'"><input class="nt" data-nt="'+esc(k)+'" placeholder="ড্রাইভারের জন্য নোট (ঐচ্ছিক)" value="'+esc(it.note||'')+'"><button class="rr sm" data-rr="unlock" data-k="'+esc(k)+'">আপডেট</button><button class="rr sm" data-rr="lock" data-k="'+esc(k)+'">🔒 লক করুন</button>':'<input class="nt" data-bz="'+esc(k)+'" placeholder="কোন বাজারে/ঘাটে আগে আসবে (ঐচ্ছিক)"><input class="nt" data-nt="'+esc(k)+'" placeholder="ড্রাইভারের জন্য নোট (ঐচ্ছিক)"><button class="rr ok sm" data-rr="unlock" data-k="'+esc(k)+'">🔓 আনলক করুন</button>')+'<button class="rr dng sm" data-rr="remove" data-k="'+esc(k)+'">বাদ দিন</button></div></div>';
+      }else{
+        h+='<div class="rr-row done"><div class="t"><div class="no">'+(m.o||'')+'</div><div class="nm">#'+esc(m.inv)+' — '+esc(nm)+'<small>'+esc(ad)+'</small></div><div>'+(rep?(rep.applied?'<span class="pill d">✓ হিসাবে যোগ হয়েছে</span>':'<span class="pill w">হিসাব বাকি</span>'):'<span class="pill l">ড্রাইভারের ফোন থেকে সরানো</span>')+'</div></div>';
+        if(rep){
+          var diff=(parseFloat(rep.received)||0)-(parseFloat(rep.due)||0);
+          h+='<div class="rr-rep"><div>ড্রাইভার বলছে পেয়েছে: <b>'+money(rep.received)+'</b> · নেওয়ার কথা ছিল '+money(rep.due)+(diff!==0?' <span class="pill '+(diff<0?'r':'w')+'">'+(diff<0?'কম ':'বেশি ')+money(Math.abs(diff))+'</span>':' <span class="pill o">মিলেছে</span>')+' · '+when(rep.at)+'</div>'+(rep.note?'<div style="margin-top:4px">নোট: '+esc(rep.note)+'</div>':'')+'<div class="ac" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+(rep.hasVoice?'<button class="rr sm" data-rr="play" data-id="'+esc(rep.id)+'">▶ ভয়েস নোট শুনুন</button>':'')+(rep.applied?'':'<button class="rr pri sm" data-rr="apply" data-id="'+esc(rep.id)+'"'+(S.busy?' disabled':'')+'>ইনভয়েসে টাকা যোগ করে Delivered করুন</button>')+'</div><div class="pl" data-pl="'+esc(rep.id)+'"></div></div>';
+        }
+      }
+    });
+    return h;
+  }
+
+  /* ───── কাজ ───── */
+  /* গ্রাম/থানা/জেলা আলাদা করা ও OpenStreetMap থেকে আনুমানিক জায়গা খোঁজা (গ্রাম → থানা → জেলা, যেটা আগে পাওয়া যায়) */
+  function parts(inv){
+    var t=[inv.customerAddress,inv.customerPS,inv.customerPO,inv.customerDistrict].join(' , ');
+    function g(re,fb){var m=t.match(re);return ((m&&m[1])||fb||'').replace(/[,،।]+$/,'').trim()}
+    return {village:g(/(?:গ্রাম|গ্রাম|vill(?:age)?)\s*[:：-]\s*([^,،\n]+)/i,''),ps:g(/(?:থানা|উপজেলা|upazila|P\.?S\.?)\s*[:：-]\s*([^,،\n]+)/i,inv.customerPS),dist:g(/(?:জেলা|district|dist\.?)\s*[:：-]\s*([^,،\n]+)/i,inv.customerDistrict)};
+  }
+  async function geo(inv){
+    if(inv.geo&&inv.geo.lat)return inv.geo;
+    var p=parts(inv),tries=[[p.village,p.ps,p.dist,'village'],[p.ps,p.dist,'','upazila'],[p.dist,'','','district']];
+    for(var i=0;i<tries.length;i++){
+      var q=tries[i].slice(0,3).filter(Boolean).concat(['Bangladesh']).join(', ');if(!tries[i][0])continue;
+      var ck='rfGeo:'+q,c=null;try{c=JSON.parse(localStorage.getItem(ck)||'null')}catch(e){}
+      if(c)return c;
+      try{
+        var ac=new AbortController(),tm=setTimeout(function(){ac.abort()},6000);
+        var r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=bd&accept-language=bn,en&q='+encodeURIComponent(q),{signal:ac.signal});clearTimeout(tm);
+        var j=await r.json();
+        if(j&&j[0]){var o={lat:+(+j[0].lat).toFixed(5),lng:+(+j[0].lon).toFixed(5),lv:tries[i][3]};try{localStorage.setItem(ck,JSON.stringify(o))}catch(e){}return o}
+      }catch(e){}
+      await new Promise(function(ok){setTimeout(ok,1100)});
+    }
+    return null;
+  }
+  async function enrich(inv,bazar){
+    var p=parts(inv),g=null;
+    // কাস্টমার নিজে তার ট্র্যাকিং লিংক তার নিজের লোকেশন থেকে খুললে (এবং লোকেশন ঠিকানার আশেপাশে মিললে) আমরা সেই সঠিক লোকেশনটাই রাইডারকে দেখাই — এটা থাকলে গ্রাম/থানা অনুমান করার দরকার পড়ে না
+    if(inv.trackToken&&window.rfTrackGet){try{var td=await window.rfTrackGet(inv.trackToken);if(td&&td.confirmedGeo&&td.confirmedGeo.lat)g={lat:td.confirmedGeo.lat,lng:td.confirmedGeo.lng,lv:'exact',src:'customer'}}catch(e){}}
+    if(!g)g=await geo(inv);
+    return {village:p.village,ps:p.ps,dist:p.dist,bazar:bazar||'',geo:g||null};
+  }
+  function details(inv,note,o,ex){
+    var names=(inv.items||[]).map(function(i){return String(i.desc||i.description||'').trim()}).filter(Boolean).join(', ');
+    var q=[inv.customerAddress,inv.customerPS,inv.customerPO,inv.customerDistrict,'Bangladesh'].map(function(x){return String(x||'').trim()}).filter(Boolean).join(', ');
+    return {o:o,lock:false,inv:String(inv.invoiceNo),name:inv.customerName||'',phone:inv.customerPhone||'',addr:inv.customerAddress||'',mapq:q,map:inv.mapLink||'',items:names,due:dueOf(inv),note:note||'',village:(ex||{}).village||'',ps:(ex||{}).ps||'',dist:(ex||{}).dist||'',bazar:(ex||{}).bazar||'',geo:(ex||{}).geo||null};
+  }
+  async function setLock(k,open){
+    var r=curRun(),m=S.priv.map[k],inv=S.invMap[String(m.inv)];if(!r||!m)return;
+    if(!inv){say('ইনভয়েস পাওয়া যায়নি',true);return}
+    var inp=document.querySelector('[data-nt="'+k+'"]'),note=inp?inp.value.trim().slice(0,200):'';
+    var bz=document.querySelector('[data-bz="'+k+'"]'),bazar=bz?bz.value.trim().slice(0,80):'';
+    var val=open?details(inv,note,m.o,await enrich(inv,bazar)):{o:m.o,lock:true};
+    await api().update(r.id,(function(){var o={};o['items.'+k]=val;return o})());
+    r.items[k]=val;
+    if(open){try{if(r.name||r.phone){inv.riderName=r.name||inv.riderName||'';inv.riderPhone=r.phone||inv.riderPhone||'';await idbSaveInvoice(inv);if(inv.trackToken&&window.rfTrackPatch)window.rfTrackPatch(inv.trackToken,{rider:{n:inv.riderName,p:inv.riderPhone}}).catch(function(){})}}catch(e){}}
+  }
+  async function bulk(open){
+    var r=curRun();if(!r)return;var map=S.priv.map,ks=Object.keys(map).filter(function(k){return r.items[k]});
+    var upd={},ex={};
+    if(open)for(var z=0;z<ks.length;z++){var iv=S.invMap[String(map[ks[z]].inv)];if(iv)ex[ks[z]]=await enrich(iv,(r.items[ks[z]]||{}).bazar)}
+    ks.forEach(function(k){var inv=S.invMap[String(map[k].inv)];if(!inv)return;upd['items.'+k]=open?details(inv,(r.items[k]||{}).note,map[k].o,ex[k]):{o:map[k].o,lock:true}});
+    if(!Object.keys(upd).length)return;
+    await api().update(r.id,upd);await refresh();say(open?'সব আনলক হয়েছে':'সব লক হয়েছে');
+  }
+  async function create(){
+    var dn=($('rr-dn')||{}).value||'',dp=($('rr-dp')||{}).value||'',days=parseInt(($('rr-dd')||{}).value)||3;S.dn=dn.trim();S.dp=dp.trim();
+    if(!S.dn){say('ড্রাইভারের নাম দিন',true);return}
+    if(!S.picked.length){say('কমপক্ষে একটা ইনভয়েস বাছুন',true);return}
+    S.busy=true;draw();
+    try{
+      var id=tok(),items={},map={};S.picked.forEach(function(no,i){var k=key(no);items[k]={o:i+1,lock:true};map[k]={inv:String(no),o:i+1}});
+      await api().setPriv(id,{map:map,name:S.dn,created:Date.now()});
+      await api().set(id,{name:S.dn,phone:S.dp,shop:localStorage.getItem('companyName')||'Hamida Furniture',officePhone:String(localStorage.getItem('compPhone')||'').split(',')[0].trim(),created:Date.now(),exp:Date.now()+days*864e5,items:items,v:1});
+      try{if(S.dp){var rr=JSON.parse(localStorage.getItem('rfRiders')||'{}');rr[S.dn]=S.dp;localStorage.setItem('rfRiders',JSON.stringify(rr))}}catch(e){}
+      S.picked=[];S.q='';S.id=id;S.view='run';S.busy=false;await loadRuns();await loadRun();draw();say('লিস্ট তৈরি হয়েছে — এখন আনলক করুন ও লিংক পাঠান');
+    }catch(e){S.busy=false;console.error(e);say('তৈরি হয়নি: '+(e.code||e.message),true);draw()}
+  }
+  async function addSave(){
+    var r=curRun();if(!r||!S.picked.length){say('ইনভয়েস বাছুন',true);return}
+    S.busy=true;draw();
+    try{
+      var map=S.priv.map,mx=0;Object.keys(map).forEach(function(k){mx=Math.max(mx,map[k].o||0)});
+      var upd={},nm=Object.assign({},map);S.picked.forEach(function(no){var k=key(no);mx++;nm[k]={inv:String(no),o:mx};upd['items.'+k]={o:mx,lock:true}});
+      await api().setPriv(r.id,{map:nm,name:r.name,created:r.created});await api().update(r.id,upd);
+      S.picked=[];S.q='';S.view='run';S.busy=false;await refresh();say('যোগ হয়েছে (লক অবস্থায়)');
+    }catch(e){S.busy=false;say('যোগ হয়নি: '+(e.code||e.message),true);draw()}
+  }
+  async function removeItem(k){
+    var r=curRun(),m=S.priv.map[k];if(!r||!m)return;if(!confirm('#'+m.inv+' এই লিস্ট থেকে বাদ দেবেন?'))return;
+    var nm=Object.assign({},S.priv.map);delete nm[k];
+    await api().setPriv(r.id,{map:nm,name:r.name,created:r.created});
+    var o={};o['items.'+k]=window.rfRunApi.DEL;await api().update(r.id,o);await refresh();say('বাদ দেওয়া হয়েছে');
+  }
+  async function applyRep(id){
+    var rep=S.reps.find(function(x){return x.id===id}),r=curRun();if(!rep||!r||S.busy)return;
+    var m=S.priv.map[rep.key];if(!m||String(m.inv)!==String(rep.inv)){alert('এই হিসাবের ইনভয়েস নম্বর লিস্টের সাথে মেলেনি — যোগ করা হয়নি।');return}
+    var inv=await idbGetInvoice(String(m.inv));if(!inv){say('ইনভয়েস পাওয়া যায়নি',true);return}
+    var rec=parseFloat(rep.received)||0;
+    if(!confirm('#'+inv.invoiceNo+' ('+(inv.customerName||'')+')\nড্রাইভার পেয়েছে: '+money(rec)+'\nএখনকার বাকি: '+money(dueOf(inv))+'\n\nটাকা ইনভয়েসের Paid-এ যোগ করে অর্ডার Delivered করবেন?'))return;
+    S.busy=true;draw();
+    try{
+      inv.paid=(parseFloat(inv.paid)||0)+rec;inv.due=Math.max(0,(parseFloat(inv.grandTotal)||0)-inv.paid);inv.updatedAt=Date.now();inv.pendingSync=true;
+      await idbSaveInvoice(inv);
+      if(inv.deliveryStatus!=='Delivered')await updateDeliveryStatus(inv.invoiceNo,{value:'Delivered',className:''});
+      else if(typeof saveCloudData==='function')saveCloudData();
+      var fresh=await idbGetInvoice(String(inv.invoiceNo));if(window.rfTrackSyncAll)await window.rfTrackSyncAll(fresh||inv);
+      await api().markApplied(id);S.busy=false;await refresh();say('✅ টাকা যোগ হয়েছে ও Delivered করা হয়েছে');
+    }catch(e){S.busy=false;console.error(e);say('সম্পূর্ণ হয়নি: '+(e.code||e.message),true);draw()}
+  }
+  async function play(id){
+    var box=document.querySelector('[data-pl="'+id+'"]');if(!box)return;box.textContent='লোড হচ্ছে…';
+    try{var v=await api().voice(id);if(!v||!v.data){box.textContent='ভয়েস পাওয়া যায়নি';return}box.textContent='';var a=document.createElement('audio');a.controls=true;a.autoplay=true;a.src=v.data;a.style.cssText='width:100%;margin-top:8px;height:36px';box.appendChild(a)}catch(e){box.textContent='ভয়েস লোড হয়নি'}
+  }
+  function copy(t){try{navigator.clipboard.writeText(t).then(function(){say('লিংক কপি হয়েছে')})}catch(e){var i=document.createElement('input');i.value=t;document.body.appendChild(i);i.select();document.execCommand('copy');i.remove();say('লিংক কপি হয়েছে')}}
+
+  /* ───── ক্লিক ───── */
+  document.addEventListener('click',async function(e){
+    var m=$('rfRunModal');if(!m||m.style.display!=='block')return;
+    var t=e.target.closest('[data-rr]');if(!t||!m.contains(t))return;
+    var a=t.dataset.rr,id=t.dataset.id,k=t.dataset.k,r;
+    try{
+      if(a==='close'){m.style.display='none';return}
+      if(a==='refresh'){await refresh();return}
+      if(a==='new'){S.view='new';S.picked=[];S.q='';S.dn='';S.dp='';await loadInvs();draw();return}
+      if(a==='back'){S.view='list';S.picked=[];await refresh();return}
+      if(a==='backrun'){S.view='run';S.picked=[];draw();return}
+      if(a==='open'){S.id=id;S.view='run';await loadRun();draw();return}
+      if(a==='add'){S.view='add';S.picked=[];S.q='';await loadInvs();draw();return}
+      if(a==='create'){await create();return}
+      if(a==='addsave'){await addSave();return}
+      r=S.runs.find(function(x){return x.id===(id||S.id)});
+      if(a==='copy'){var l=linkOf(r.id);if(!l){alert('Settings-এ Site URL দেওয়া নেই');return}copy(l);return}
+      if(a==='sms'||a==='wa'){if(!linkOf(r.id)){alert('Settings-এ Site URL দেওয়া নেই');return}var ph=waPh(r.phone);if(!ph){alert('ড্রাইভারের মোবাইল নম্বর দেওয়া নেই');return}
+        if(a==='sms')location.href='sms:+'+ph+'?body='+encodeURIComponent(msgOf(r));else window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msgOf(r)),'_blank','noopener');return}
+      if(a==='unlock'){await setLock(k,true);await loadRuns();draw();say('🔓 আনলক হয়েছে — ড্রাইভার এখন দেখতে পাবে');return}
+      if(a==='lock'){await setLock(k,false);await loadRuns();draw();say('🔒 লক হয়েছে — ড্রাইভারের ফোন থেকে তথ্য সরে গেছে');return}
+      if(a==='unlockall'){await bulk(true);return}
+      if(a==='lockall'){await bulk(false);return}
+      if(a==='remove'){await removeItem(k);return}
+      if(a==='extend'){await api().update(r.id,{exp:Math.max(Date.now(),r.exp||0)+864e5});await refresh();say('মেয়াদ বাড়ানো হয়েছে');return}
+      if(a==='del'){
+        if(S.reps.some(function(x){return !x.applied})){alert('আগে ড্রাইভারের জমা দেওয়া হিসাবগুলো বুঝে নিন, তারপর লিস্ট মুছুন।');return}
+        if(!confirm('এই লিস্ট মুছে দিলে ড্রাইভারের লিংক সাথে সাথে বন্ধ হয়ে যাবে। মুছবেন?'))return;
+        await api().del(r.id);S.view='list';await refresh();say('লিস্ট মুছে ফেলা হয়েছে');return}
+      if(a==='apply'){await applyRep(id);return}
+      if(a==='play'){await play(id);return}
+      if(a==='notify'){var msg=prompt('ড্রাইভারকে কী বার্তা পাঠাবেন?');if(!msg||!msg.trim())return;await api().notify(r.id,msg.trim());say('📨 বার্তা পাঠানো হয়েছে');return}
+    }catch(er){console.error(er);say(er.message||'কাজটি হয়নি',true)}
+  });
+  document.addEventListener('change',function(e){
+    var c=e.target;if(!c||!c.dataset||c.dataset.pk===undefined)return;
+    var no=String(c.dataset.pk),i=S.picked.indexOf(no);if(c.checked&&i<0)S.picked.push(no);else if(!c.checked&&i>=0)S.picked.splice(i,1);
+    var p=$('rr-pc');if(p)p.textContent=S.picked.length+'টি বাছা হয়েছে';
+  });
+  document.addEventListener('input',function(e){
+    if(e.target&&e.target.id==='rr-q'){S.q=e.target.value;var dn=($('rr-dn')||{}).value,dp=($('rr-dp')||{}).value,dd=($('rr-dd')||{}).value;S.dn=dn||S.dn;S.dp=dp||S.dp;draw();var q=$('rr-q');if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length)}if($('rr-dd')&&dd)$('rr-dd').value=dd}
+    else if(e.target&&e.target.id==='rr-dn'){var r=null;try{r=JSON.parse(localStorage.getItem('rfRiders')||'{}')[e.target.value.trim()]}catch(x){}var p=$('rr-dp');if(r&&p&&!p.value.trim())p.value=r}
+  });
+  $('rfRunModal').addEventListener('click',function(e){if(e.target===this)this.style.display='none'});
+
+  window.rfRunOpen=async function(){
+    var m=$('rfRunModal');m.style.display='block';S.view='list';S.picked=[];
+    $('rr-body').innerHTML='<div class="rr-empty">লোড হচ্ছে…</div>';
+    try{api()}catch(e){$('rr-body').innerHTML='<div class="rr-empty">⚠️ '+esc(e.message)+'</div>';return}
+    await refresh();
+  };
+  /* সাইডবারের লাল ব্যাজ: ড্রাইভারের জমা দেওয়া কিন্তু বুঝে না নেওয়া হিসাব */
+  function badge(){var b=$('rf-run-badge');if(!b)return;var n=S.pend.length;b.textContent=n;b.style.display=n?'inline-block':'none'}
+  async function poll(){try{if(!window.rfTrackAuthed||!window.rfTrackAuthed()||!window.rfRunApi)return;S.pend=await window.rfRunApi.pending();badge();var m=$('rfRunModal');if(m&&m.style.display==='block'&&S.view==='list'){await loadRuns();draw()}}catch(e){}}
+  setTimeout(poll,6000);setInterval(poll,90000);
 })();
 </script>
 </body>
