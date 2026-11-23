@@ -365,25 +365,25 @@ function buildInvEl(d){
       '<div class="meta"><div class="ttl">INVOICE</div><div>Invoice No: <b>#' + ESC(d.no || '') + '</b></div><div>Date: ' + dStr + '</div><div>Time: ' + tStr + '</div></div></div>' +
     '<div class="bill"><div class="lab">BILL TO</div><div class="nm">' + ESC(d.name || '') + '</div>' +
       (d.cphone ? '<div>Phone: ' + ESC(d.cphone) + '</div>' : '') + (d.addr ? '<div>Address: ' + ESC(d.addr) + '</div>' : '') + '</div>' +
-    '<table class="items"><colgroup><col style="width:46px"><col><col style="width:70px"><col style="width:120px"><col style="width:130px"></colgroup>' +
-      '<thead><tr><th class="c">#</th><th>Description</th><th class="c">Qty</th><th class="r">Rate (Tk)</th><th class="r">Amount (Tk)</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    '<table class="items">' +
+      '<tr><th class="c" style="width:46px">#</th><th style="width:auto">Description</th><th class="c" style="width:70px">Qty</th><th class="r" style="width:120px;white-space:nowrap">Rate (Tk)</th><th class="r" style="width:130px;white-space:nowrap">Amount (Tk)</th></tr>' + rows + '</table>' +
     '<table class="tot">' + trow('Subtotal (Tk)', num(sub)) + (disc ? trow('Discount (Tk)', num(disc)) : '') +
       trow('Grand Total (Tk)', num(tt)) + trow('Paid (Tk)', num(pp)) +
       '<tr class="due"><td>Balance Due (Tk)</td><td class="r">' + num(due) + '</td></tr></table>' +
     '<div class="ft">Thank you for choosing ' + ESC(shop.name || 'Hamida Furniture') + '.</div>' +
     '</div>' +
     '<style>' +
-    '.inv{box-sizing:border-box;width:794px;height:1123px;overflow:hidden;padding:40px 46px;background:#fff;color:#111;font-family:\'Hind Siliguri\',\'Noto Sans Bengali\',Arial,sans-serif;font-size:13px;line-height:1.4}' +
+    '.inv{box-sizing:border-box;width:794px;height:1100px;overflow:hidden;padding:40px 46px;background:#fff;color:#111;font-family:\'Hind Siliguri\',\'Noto Sans Bengali\',Arial,sans-serif;font-size:13px;line-height:1.4}' +
     '.hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid #222}' +
     '.logo{height:52px;display:block;margin-bottom:6px}.brand{font-size:20px;font-weight:700}.sm{color:#444;margin-top:2px}' +
     '.meta{text-align:right;color:#222;line-height:1.5}.ttl{font-size:22px;font-weight:700;letter-spacing:1px;margin-bottom:4px}' +
     '.bill{margin-top:14px;padding:10px 0;border-bottom:1px solid #ddd;line-height:1.55}.lab{font-size:11px;font-weight:700;letter-spacing:1px;color:#555}.nm{font-weight:700;font-size:15px}' +
     'table{border-collapse:collapse;width:100%}' +
-    '.items{table-layout:fixed;margin-top:14px}' +
+    '.items{margin-top:14px}' +
     '.items th{text-align:left;font-weight:700;font-size:12px;padding:7px 6px;border-top:1px solid #222;border-bottom:1px solid #222}' +
     '.items td{padding:7px 6px;border-bottom:1px solid #e5e5e5;vertical-align:top;word-wrap:break-word}' +
     '.c{text-align:center}.r{text-align:right}' +
-    '.tot{width:44%;margin-left:auto;margin-top:12px;table-layout:fixed}.tot td{padding:5px 6px}.tot td.r{font-weight:600}' +
+    '.tot{width:44%;margin-left:auto;margin-top:12px}.tot td{padding:5px 6px}.tot td.r{font-weight:600}' +
     '.tot tr.due td{font-weight:800;font-size:16px;color:#d10000;border-top:2px solid #d10000;padding:8px 6px}' +
     '.ft{position:absolute;left:46px;right:46px;bottom:40px;text-align:center;color:#666;font-size:12px;border-top:1px solid #ddd;padding-top:10px}' +
     '</style>';
@@ -401,7 +401,7 @@ async function downloadInvoice(d){
     const pdf = new window.jspdf.jsPDF({unit: 'mm', format: 'a4'});
     const imgW = 210, imgH = canvas.height * imgW / canvas.width, pageH = 297;
     const data = canvas.toDataURL('image/jpeg', 0.95);
-    for (let page = 0; page * pageH < imgH; page++) {
+    for (let page = 0; page * pageH < imgH - 3; page++) {
       if (page > 0) pdf.addPage();
       pdf.addImage(data, 'JPEG', 0, -page * pageH, imgW, imgH);
     }
