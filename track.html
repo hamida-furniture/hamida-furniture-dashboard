@@ -311,56 +311,52 @@ function render(d){
   try { document.title = (shop.name ? shop.name + ', ' : '') + 'অর্ডার #' + (d.no || '') } catch(e){}
 }
 const ESC = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let h2pLoad = null;
-function loadHtml2Pdf(){
-  if (window.html2pdf) return Promise.resolve(window.html2pdf);
-  if (h2pLoad) return h2pLoad;
-  return h2pLoad = new Promise((ok, no) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-    s.onload = () => ok(window.html2pdf); s.onerror = () => { h2pLoad = null; no(new Error('pdf')) };
-    document.head.appendChild(s);
-  });
-}
-function invHtml(d){
+const BNDIG = x => String(x).replace(/\d/g, c => '০১২৩৪৫৬৭৮৯'[c]);
+function invDoc(d){
   const shop = d.shop || {}, a = d.amt || {};
   const tt = +a.t || 0, pp = +a.p || 0, due = tt > 0 ? Math.max(0, tt - pp) : (+a.d || 0);
   const times = (d.hist || []).map(x => +x.t || 0).filter(Boolean);
-  const dt = times.length ? new Date(Math.min(...times)) : new Date();
-  const dateTxt = dt.toLocaleDateString('bn-BD', {day: 'numeric', month: 'long', year: 'numeric'});
-  const money0 = n => '৳ ' + (+n || 0).toLocaleString('bn-BD');
-  const items = (d.items || []).map((x, i) => '<tr><td style="padding:9px 10px;border:1px solid #cfd8d8;text-align:center">' + (i + 1) + '</td><td style="padding:9px 10px;border:1px solid #cfd8d8">' + ESC(x) + '</td></tr>').join('');
-  const logo = /^data:image\//.test(shop.logo || '') ? '<img src="' + shop.logo + '" style="height:70px;object-fit:contain" alt="">' : '';
-  const row = (l, v, strong) => '<tr><td style="padding:7px 10px;border:1px solid #cfd8d8;' + (strong ? 'font-weight:700;' : '') + '">' + l + '</td><td style="padding:7px 10px;border:1px solid #cfd8d8;text-align:right;' + (strong ? 'font-weight:700;' : '') + '">' + v + '</td></tr>';
-  return '<div style="width:794px;min-height:1123px;box-sizing:border-box;padding:40px 46px;background:#fff;color:#17211f;font-family:\'Hind Siliguri\',\'Noto Sans Bengali\',sans-serif">' +
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0b6e6e;padding-bottom:14px">' +
-      '<div>' + logo + '<div style="font-size:24px;font-weight:700;color:#0b6e6e;margin-top:6px">' + ESC(shop.name || 'Hamida Furniture') + '</div>' +
-      (shop.phone ? '<div style="font-size:14px">ফোন: ' + ESC(shop.phone) + '</div>' : '') + '</div>' +
-      '<div style="text-align:right"><div style="font-size:22px;font-weight:700">ইনভয়েস</div><div style="font-size:14px">নম্বর: #' + ESC(d.no || '') + '</div><div style="font-size:14px">তারিখ: ' + dateTxt + '</div></div>' +
-    '</div>' +
-    '<div style="margin:18px 0 8px;font-weight:700">কাস্টমার</div>' +
-    '<div style="font-size:15px;line-height:1.7">' + ESC(d.name || '') + (d.cphone ? '<br>ফোন: ' + ESC(d.cphone) : '') + (d.addr ? '<br>' + ESC(d.addr) : '') + '</div>' +
-    '<table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:15px"><tr style="background:#0b6e6e;color:#fff"><th style="padding:9px 10px;border:1px solid #0b6e6e;width:60px">ক্রম</th><th style="padding:9px 10px;border:1px solid #0b6e6e;text-align:left">পণ্যের বিবরণ</th></tr>' + items + '</table>' +
-    '<table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:15px">' + row('মোট বিল', money0(tt)) + row('পরিশোধিত', money0(pp)) + row('বাকি', money0(due), true) + '</table>' +
-    '<div style="margin-top:60px;padding-top:12px;border-top:1px dashed #9aa9a7;text-align:center;font-size:13px;color:#5a6967">এই ইনভয়েসটি স্বয়ংক্রিয়ভাবে তৈরি করা হয়েছে। সিল বা স্বাক্ষরের প্রয়োজন নেই।</div>' +
-  '</div>';
+  const dt = new Date(times.length ? Math.min(...times) : Date.now());
+  const dStr = dt.toLocaleDateString('bn-BD', {day: 'numeric', month: 'long', year: 'numeric'});
+  const tStr = dt.toLocaleTimeString('bn-BD', {hour: 'numeric', minute: '2-digit'});
+  const money0 = n => '৳ ' + (+n || 0).toLocaleString('bn-BD', {maximumFractionDigits: 2});
+  const lines = (Array.isArray(d.lines) && d.lines.length) ? d.lines : (d.items || []).map(x => ({d: x, q: '', r: 0, a: 0}));
+  const rows = lines.map((x, i) => '<tr><td class="c">' + BNDIG(i + 1) + '</td><td>' + ESC(x.d) + '</td><td class="c">' + ESC(x.q || '') + '</td><td class="r">' + (x.r ? money0(x.r) : '') + '</td><td class="r">' + (x.a ? money0(x.a) : '') + '</td></tr>').join('');
+  const sub = +d.sub || lines.reduce((s, x) => s + (+x.a || 0), 0), disc = +d.disc || 0;
+  const logo = /^data:image\//.test(shop.logo || '') ? '<img src="' + shop.logo + '" alt="">' : '';
+  const phones = String(shop.phone || '').split(',').map(x => x.trim()).filter(Boolean).join(', ');
+  const script = '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.print()},400)}</scr' + 'ipt>';
+  return '<!doctype html><html lang="bn"><head><meta charset="utf-8"><title>Invoice-' + ESC(d.no || '') + '</title>' +
+  '<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">' +
+  '<style>@page{size:A4;margin:12mm}*{box-sizing:border-box}body{margin:0;font-family:"Hind Siliguri",sans-serif;color:#17211f;font-size:13px}' +
+  '.p{max-width:186mm;margin:0 auto}.hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0b6e6e;padding-bottom:10px}' +
+  '.co b{font-size:21px;color:#0b6e6e;display:block}.co img{height:58px;display:block;margin-bottom:4px}.co div{line-height:1.55}' +
+  '.meta{text-align:right;line-height:1.6}.meta b{font-size:18px;display:block}' +
+  '.sec{margin:14px 0 6px;font-weight:700;color:#0b6e6e}.cu{line-height:1.6}' +
+  'table{width:100%;border-collapse:collapse;margin-top:6px}th,td{border:1px solid #cfd8d8;padding:7px 8px;text-align:left;vertical-align:top}' +
+  'th{background:#0b6e6e;color:#fff;font-weight:600}.c{text-align:center}.r{text-align:right}' +
+  '.tot{width:52%;margin-left:auto;margin-top:10px}.tot tr:last-child td{font-weight:700;background:#f0f6f6}' +
+  '.ft{margin-top:36px;border-top:1px dashed #9aa9a7;padding-top:10px;text-align:center;color:#5a6967;font-size:12px}</style></head><body><div class="p">' +
+  '<div class="hd"><div class="co">' + logo + '<b>' + ESC(shop.name || 'Hamida Furniture') + '</b>' +
+  '<div>' + ESC(shop.addr || '') + '</div>' + (phones ? '<div>ফোন: ' + ESC(phones) + '</div>' : '') + '</div>' +
+  '<div class="meta"><b>ইনভয়েস / ক্যাশ মেমো</b>নম্বর: #' + ESC(d.no || '') + '<br>তারিখ: ' + dStr + '<br>সময়: ' + tStr + '</div></div>' +
+  '<div class="sec">কাস্টমার</div><div class="cu"><b>' + ESC(d.name || '') + '</b>' + (d.cphone ? '<br>ফোন: ' + ESC(d.cphone) : '') + (d.addr ? '<br>ঠিকানা: ' + ESC(d.addr) : '') + '</div>' +
+  '<table><tr><th style="width:44px" class="c">ক্রম</th><th>পণ্যের বিবরণ</th><th style="width:70px" class="c">পরিমাণ</th><th style="width:110px" class="r">দাম</th><th style="width:120px" class="r">মোট</th></tr>' + rows + '</table>' +
+  '<table class="tot"><tr><td>মোট বিল</td><td class="r">' + money0(sub) + '</td></tr>' + (disc ? '<tr><td>ছাড়</td><td class="r">' + money0(disc) + '</td></tr>' : '') +
+  '<tr><td>সর্বমোট</td><td class="r">' + money0(tt) + '</td></tr><tr><td>পরিশোধিত</td><td class="r">' + money0(pp) + '</td></tr><tr><td>বাকি</td><td class="r">' + money0(due) + '</td></tr></table>' +
+  '<div class="ft">এই ইনভয়েসটি স্বয়ংক্রিয়ভাবে তৈরি করা হয়েছে। সিল বা স্বাক্ষরের প্রয়োজন নেই।</div></div>' + script + '</body></html>';
 }
-async function downloadInvoice(d){
-  const h2p = await loadHtml2Pdf();
-  const el = document.createElement('div');
-  el.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;background:#fff';
-  el.innerHTML = invHtml(d); document.body.appendChild(el);
-  try {
-    await h2p().set({margin: 0, filename: 'Invoice-' + (d.no || 'order') + '.pdf', image: {type: 'jpeg', quality: 0.98},
-      html2canvas: {scale: 2, useCORS: true, backgroundColor: '#ffffff'}, jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}}).from(el).save();
-  } finally { el.remove() }
+function downloadInvoice(d){
+  const w = window.open('', '_blank');
+  if (!w) { alert('পপআপ বন্ধ আছে। ব্রাউজারে পপআপ চালু করে আবার চাপুন।'); return }
+  w.document.open(); w.document.write(invDoc(d)); w.document.close();
 }
 function invCard(d){
   const c = h('div', 'card invc');
-  c.appendChild(h('b', '', 'ইনভয়েস'));
-  c.appendChild(h('p', '', 'আপনার A4 ইনভয়েসটি PDF হিসেবে ডাউনলোড করুন। এতে সিল বা স্বাক্ষরের প্রয়োজন নেই।'));
-  const b = h('button', 'mbtn pri', 'ইনভয়েস ডাউনলোড করুন'); b.type = 'button';
-  b.addEventListener('click', async () => { b.disabled = true; b.textContent = 'তৈরি হচ্ছে…'; try { await downloadInvoice(d) } catch (e) { alert('ইনভয়েস তৈরি হয়নি, ইন্টারনেট দেখে আবার চেষ্টা করুন') } b.disabled = false; b.textContent = 'ইনভয়েস ডাউনলোড করুন' });
+  c.appendChild(h('b', '', 'ইনভয়েস / ক্যাশ মেমো'));
+  c.appendChild(h('p', '', 'ইনভয়েসটি A4 সাইজে খুলবে এবং প্রিন্ট উইন্ডো আসবে। সেখান থেকে "Save as PDF" বেছে PDF হিসেবে সেভ করুন।'));
+  const b = h('button', 'mbtn pri', 'ইনভয়েস ডাউনলোড করুন (PDF)'); b.type = 'button';
+  b.addEventListener('click', () => downloadInvoice(d));
   c.appendChild(b); return c;
 }
 function fail(m){ app.textContent = ''; const c = h('div', 'card err'); c.appendChild(h('h2', '', m)); c.appendChild(h('div', 'muted', 'লিংকটি ঠিক আছে কিনা দেখুন, অথবা আমাদের সাথে যোগাযোগ করুন।')); app.appendChild(c) }

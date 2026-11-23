@@ -12112,9 +12112,9 @@ document.addEventListener('click', (e) => {
   function waPh(p){var d=String(p||'').split(/[,\/\n]/)[0].replace(/\D/g,'');if(d.indexOf('00')===0)d=d.slice(2);else if(/^0\d{10}$/.test(d))d='88'+d;else if(/^1\d{9}$/.test(d))d='880'+d;return d}
   function link(tok){var u=(typeof getSiteUrl==='function'?getSiteUrl():'');return u?u+'/track.html?t='+tok:''}
   window.rfTrackLinkFor=function(inv){return inv&&inv.trackToken?link(inv.trackToken):''};
-  function shopInfo(){var lg=localStorage.getItem('invoiceLogo')||'';return {name:localStorage.getItem('companyName')||'Hamida Furniture',phone:localStorage.getItem('compPhone')||'',fb:localStorage.getItem('rfTrackFb')||'https://www.facebook.com/hamidafurniture',group:localStorage.getItem('rfTrackGroup')||'',logo:(/^data:image\//.test(lg)&&lg.length<120000)?lg:''}}
+  function shopInfo(){var lg=localStorage.getItem('invoiceLogo')||'';return {name:localStorage.getItem('companyName')||'Hamida Furniture',phone:localStorage.getItem('compPhone')||'',fb:localStorage.getItem('rfTrackFb')||'https://www.facebook.com/hamidafurniture',group:localStorage.getItem('rfTrackGroup')||'',logo:(/^data:image\//.test(lg)&&lg.length<120000)?lg:'',addr:localStorage.getItem('compAddress')||''}}
   function stage0(st){return st==='Delivered'?LAST:(st==='Ready For Delivery'||st==='On Delivery')?READY:0}
-  function base(inv){return {no:String(inv.invoiceNo||''),name:inv.customerName||'',cphone:inv.customerPhone||'',addr:inv.customerAddress||'',items:(inv.items||[]).map(function(i){return String(i.desc||i.description||'').trim()}).filter(Boolean),steps:STEPS,stage:stage0(inv.deliveryStatus),eta:'',note:'',ups:[],cancelled:inv.deliveryStatus==='Cancelled',shop:shopInfo(),amt:amtOf(inv),v:2,rider:{n:inv.riderName||'',p:inv.riderPhone||''},map:inv.mapLink||'',mapq:mapQ(inv),hist:[{s:0,t:Date.now()}].concat(stage0(inv.deliveryStatus)>0?[{s:stage0(inv.deliveryStatus),t:Date.now()}]:[]),upd:Date.now()}}
+  function base(inv){return {no:String(inv.invoiceNo||''),name:inv.customerName||'',cphone:inv.customerPhone||'',addr:inv.customerAddress||'',items:(inv.items||[]).map(function(i){return String(i.desc||i.description||'').trim()}).filter(Boolean),lines:(inv.items||[]).map(function(i){return {d:String(i.desc||i.description||'').trim(),q:String(i.qty||''),r:num(i.rate),a:num(i.total)}}).filter(function(x){return x.d}),sub:num(inv.subtotal),disc:num(inv.discount),steps:STEPS,stage:stage0(inv.deliveryStatus),eta:'',note:'',ups:[],cancelled:inv.deliveryStatus==='Cancelled',shop:shopInfo(),amt:amtOf(inv),v:2,rider:{n:inv.riderName||'',p:inv.riderPhone||''},map:inv.mapLink||'',mapq:mapQ(inv),hist:[{s:0,t:Date.now()}].concat(stage0(inv.deliveryStatus)>0?[{s:stage0(inv.deliveryStatus),t:Date.now()}]:[]),upd:Date.now()}}
   function mapQ(inv){return [inv.customerAddress,inv.customerPS,inv.customerPO,inv.customerDistrict,'Bangladesh'].map(function(x){return String(x||'').trim()}).filter(Boolean).join(', ')}
   function num(x){var n=parseFloat(String(x==null?'':x).replace(/[^\d.\-]/g,''));return isNaN(n)?0:n}
   function amtOf(inv){var t=num(inv.grandTotal),p=num(inv.paid),d=(inv.due!==undefined&&inv.due!=='')?num(inv.due):Math.max(0,t-p);return {t:t,p:p,d:d}}
@@ -12164,7 +12164,7 @@ document.addEventListener('click', (e) => {
   /* ইনভয়েস সেভ/এডিট হলেই কাস্টমার পেজের টাকা + তথ্য আপডেট (পেজ না থাকলে তৈরিও করে) */
   window.rfTrackSyncAll=async function(inv){try{
     if(!inv||!TOK.test(inv.trackToken||''))return;
-    var b=base(inv),f={no:b.no,name:b.name,cphone:b.cphone,addr:b.addr,mapq:b.mapq,items:b.items,amt:b.amt,upd:Date.now()};
+    var b=base(inv),f={no:b.no,name:b.name,cphone:b.cphone,addr:b.addr,mapq:b.mapq,items:b.items,lines:b.lines,sub:b.sub,disc:b.disc,shop:b.shop,amt:b.amt,upd:Date.now()};
     if(!authed()||!window.rfTrackGet){qAdd(inv.trackToken,f);return}
     var d=await window.rfTrackGet(inv.trackToken);
     if(!d){await window.rfTrackPut(inv.trackToken,b);return}
@@ -12379,6 +12379,31 @@ body.dark-mode #rr-preview .pv-box,body.dark-full #rr-preview .pv-box{background
 #rfRunModal{position:fixed!important;inset:0!important;z-index:9000!important;background:#f3f7f7!important;padding:0!important;display:none}
 #rfRunModal .modal-content{max-width:none!important;width:100%!important;height:100vh!important;max-height:100vh!important;border-radius:0!important;margin:0!important;box-shadow:none!important}
 #rfRunModal .rr-head{padding-top:max(14px,env(safe-area-inset-top))}
+
+/* ড্রাইভার লিস্ট পেজ: সাধারণ, পরিষ্কার ডিজাইন */
+#rfRunModal .rr-head{background:#ffffff!important;color:#17211f!important;border-bottom:1px solid #e3eaea!important;padding:16px 22px!important}
+#rfRunModal .rr-head h3{font-size:18px!important;font-weight:700!important;color:#0f2f3a!important}
+#rfRunModal .rr-head .x{color:#5a6967!important;font-size:24px!important}
+#rfRunModal .rr-body{background:#f5f7f7!important;padding:20px 22px 28px!important;font-family:'Hind Siliguri','Segoe UI',system-ui,sans-serif!important}
+#rfRunModal button.rr{border-radius:10px!important;font-size:14px!important;padding:9px 14px!important;font-weight:600!important;box-shadow:none!important;background:#fff!important;color:#17211f!important;border:1px solid #d3dcdc!important}
+#rfRunModal button.rr.pri{background:#0b5558!important;border-color:#0b5558!important;color:#fff!important}
+#rfRunModal button.rr.dng{color:#b42318!important;border-color:#f0c4c0!important}
+#rfRunModal .rr-row{border-radius:14px!important;border:1px solid #e1e8e8!important;box-shadow:0 1px 2px rgba(10,40,38,.04)!important;padding:16px!important;background:#fff!important}
+#rfRunModal .rr-row.open{border-left:4px solid #0b6e6e!important}
+#rfRunModal .rr-row.done{border-left:4px solid #c4cfcf!important}
+#rfRunModal .rr-tbl{background:#fff;border-radius:12px;overflow:hidden}
+
+#rr-live{position:fixed;inset:0;z-index:9500;background:#f5f7f7;display:flex;flex-direction:column;font-family:'Hind Siliguri','Segoe UI',system-ui,sans-serif}
+#rr-live .rl-h{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border-bottom:1px solid #e3eaea;padding:14px 20px}
+#rr-live .rl-h b{font-size:18px;color:#0f2f3a}
+#rr-live .rl-m2{font-size:13px;color:#5a6967;margin-top:2px}
+#rr-live .rl-old{color:#b42318}
+#rr-live .rl-map{flex:1;min-height:320px}
+#rr-live .rl-list{max-height:38vh;overflow-y:auto;background:#fff;border-top:1px solid #e3eaea;padding:8px 20px 16px}
+#rr-live .rl-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid #eef2f2}
+#rr-live .rl-row:last-child{border-bottom:0}
+#rr-live .rl-who{flex:1;min-width:160px}
+#rr-live button.rr,#rr-live a.rr{border-radius:10px;font-size:14px;padding:9px 14px;font-weight:600;background:#fff;color:#17211f;border:1px solid #d3dcdc;text-decoration:none;cursor:pointer}
 </style>
 <div id="rfRunModal" class="modal">
   <div class="modal-content">
@@ -12431,7 +12456,7 @@ body.dark-mode #rr-preview .pv-box,body.dark-full #rr-preview .pv-box{background
   }
   function curRun(){return S.runs.find(function(x){return x.id===S.id})}
   function listHtml(){
-    var h='<div class="rr-bar"><button class="rr pri" data-rr="new">＋ নতুন ড্রাইভার</button><button class="rr" data-rr="report"> রিপোর্ট</button><button class="rr" data-rr="refresh">↻ রিফ্রেশ</button><span class="sp"></span></div>';
+    var h='<div class="rr-bar"><button class="rr pri" data-rr="new">＋ নতুন ড্রাইভার</button><button class="rr" data-rr="live">লাইভ ম্যাপ</button><button class="rr" data-rr="report"> রিপোর্ট</button><button class="rr" data-rr="refresh">↻ রিফ্রেশ</button><span class="sp"></span></div>';
     if(S.pend.length){var first=S.pend[0].run;h+='<div class="rr-note"><b> ড্রাইভারের '+S.pend.length+'টি জমা দেওয়া হিসাব বুঝে নেওয়া বাকি</b><button class="rr pri sm" data-rr="open" data-id="'+esc(first)+'">দেখুন</button></div>'}
     if(!S.runs.length)return h+'<div class="rr-empty">এখনো কোনো ড্রাইভার যোগ করা হয়নি।<br>“নতুন ড্রাইভার” চেপে নাম-নম্বর দিয়ে একবার যোগ করুন, লিংকটা স্থায়ী, পরে প্রতিদিন নতুন ডেলিভারি এখানেই যোগ করবেন।</div>';
     S.runs.forEach(function(r){
@@ -12680,6 +12705,39 @@ body.dark-mode #rr-preview .pv-box,body.dark-full #rr-preview .pv-box{background
     return h;
   }
 
+  /* ───── ড্রাইভারের লাইভ ম্যাপ (অফিসের স্ক্রিন) ───── */
+  var liveTimer=null,liveMap=null,liveLayer=null,liveFit=false;
+  function closeLive(){clearInterval(liveTimer);liveTimer=null;var o=$('rr-live');if(o)o.remove();if(liveMap){try{liveMap.remove()}catch(e){}liveMap=null}liveLayer=null}
+  function openLive(){
+    closeLive();liveFit=false;
+    var o=document.createElement('div');o.id='rr-live';
+    o.innerHTML='<div class="rl-h"><div><b>ড্রাইভারের লাইভ অবস্থান</b><div class="rl-m2">প্রতি ১৫ সেকেন্ডে আপডেট হয়। ৩ মিনিটের বেশি পুরনো হলে "পুরনো তথ্য" দেখাবে।</div></div><button class="rr" id="rr-live-x">বন্ধ করুন</button></div><div id="rr-live-map" class="rl-map"></div><div id="rr-live-list" class="rl-list"><div class="rr-empty">লোড হচ্ছে…</div></div>';
+    document.body.appendChild(o);
+    $('rr-live-x').onclick=closeLive;
+    refreshLive();liveTimer=setInterval(refreshLive,15000);
+  }
+  async function refreshLive(){
+    var box=$('rr-live-list');if(!box)return;
+    var runs=[];try{runs=await api().list()}catch(e){box.innerHTML='<div class="rr-empty">লোড হচ্ছে না, ইন্টারনেট দেখুন</div>';return}
+    var now=Date.now(),rows=[];
+    runs.forEach(function(r){if(r.loc&&r.loc.lat&&r.exp&&r.exp>now)rows.push(r)});
+    rows.sort(function(a,b){return (b.loc.at||0)-(a.loc.at||0)});
+    if(!rows.length){box.innerHTML='<div class="rr-empty">এখন কোনো ড্রাইভারের লাইভ অবস্থান পাওয়া যাচ্ছে না। ড্রাইভারের ফোনে ডেলিভারি পেজ খোলা থাকতে হবে।</div>'}
+    else box.innerHTML=rows.map(function(r){
+      var g=r.loc,stale=(now-(g.at||0))>180000,sp=g.spd?(g.spd+' কিমি/ঘণ্টা'):'থেমে আছে বা অজানা';
+      return '<div class="rl-row"><div class="rl-who"><b>'+esc(r.name||'ড্রাইভার')+'</b> <span class="rl-m2">'+esc(r.phone||'')+'</span></div>'+
+        '<div class="rl-m2">'+esc(sp)+' · '+esc(ago(g.at))+(stale?' · <b class="rl-old">পুরনো তথ্য</b>':'')+'</div>'+
+        '<a class="rr" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&query='+g.lat+','+g.lng+'">Google Maps-এ দেখুন</a></div>';
+    }).join('');
+    var el=$('rr-live-map');if(!el)return;
+    var L=await loadLeaflet();if(!$('rr-live-map'))return;
+    if(!liveMap){liveMap=L.map(el,{zoomControl:true}).setView([23.8,90.4],11);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(liveMap);liveLayer=L.layerGroup().addTo(liveMap)}
+    liveLayer.clearLayers();var pts=[];
+    rows.forEach(function(r){var g=r.loc;pts.push([g.lat,g.lng]);
+      L.circleMarker([g.lat,g.lng],{radius:10,color:'#fff',weight:3,fillColor:(now-g.at>180000)?'#8a9696':'#0b6e6e',fillOpacity:1}).addTo(liveLayer)
+        .bindTooltip(esc(r.name||'ড্রাইভার')+(g.spd?' · '+g.spd+' কিমি/ঘণ্টা':''),{permanent:true,direction:'top',offset:[0,-10]})});
+    if(!liveFit&&pts.length){liveFit=true;if(pts.length===1)liveMap.setView(pts[0],15);else liveMap.fitBounds(pts,{padding:[40,40]})}
+  }
   /* ───── ক্লিক ───── */
   document.addEventListener('click',async function(e){
     var m=$('rfRunModal');if(!m||m.style.display!=='block')return;
@@ -12693,6 +12751,7 @@ body.dark-mode #rr-preview .pv-box,body.dark-full #rr-preview .pv-box{background
       if(a==='backrun'){S.view='run';S.picked=[];draw();return}
       if(a==='open'){S.id=id;S.view='run';await loadRun();draw();return}
       if(a==='add'){S.view='add';S.picked=[];S.q='';await loadInvs();draw();return}
+      if(a==='live'){openLive();return}
       if(a==='report'){S.view='report';draw();await loadReport();draw();return}
       if(a==='reprange'){S.repRange=parseInt(id)||0;draw();return}
       if(a==='create'){await create();return}

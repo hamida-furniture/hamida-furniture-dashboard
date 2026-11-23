@@ -570,16 +570,30 @@ window.addEventListener('offline', () => { const o = document.getElementById('of
   instX.addEventListener('click', () => { inst.classList.remove('on'); try { sessionStorage.setItem('rfInstDismiss', '1') } catch (e) {} });
 })();
 let db;
-// অফিসের জন্য চুপচাপ লাইভ লোকেশন, ড্রাইভারের স্ক্রিনে এর কোনো চিহ্ন (ব্যাজ/টেক্সট/আইকন) নেই, শুধু পেজ খোলা থাকলে পেছন থেকে অবস্থান পাঠানো হয়
-let locTimer = null;
-function startLocSync(){
-  if (locTimer || !navigator.geolocation || !R) return;
-  const send = () => { try { navigator.geolocation.getCurrentPosition(pos => {
-    updateDoc(doc(db, 'runs', R), {loc: {lat: +pos.coords.latitude.toFixed(5), lng: +pos.coords.longitude.toFixed(5), at: Date.now()}}).catch(() => {});
-  }, () => {}, {enableHighAccuracy: true, timeout: 15000, maximumAge: 20000}) } catch (e) {} };
-  send(); locTimer = setInterval(send, 45000);
+// অফিসের জন্য চুপচাপ লাইভ লোকেশন: গাড়ির গতি ও দিক সহ, পেজ খোলা থাকলে (ড্রাইভারের স্ক্রিনে কোনো চিহ্ন নেই)
+let locWatch = null, locLast = 0, wakeLock = null;
+function sendLoc(p){
+  const now = Date.now();
+  if (now - locLast < 10000) return;
+  locLast = now;
+  const sp = p.coords.speed, hd = p.coords.heading;
+  updateDoc(doc(db, 'runs', R), {loc: {
+    lat: +p.coords.latitude.toFixed(5), lng: +p.coords.longitude.toFixed(5), at: now,
+    spd: (sp != null && sp >= 0) ? Math.round(sp * 3.6) : 0,
+    hdg: (hd != null && !isNaN(hd)) ? Math.round(hd) : -1,
+    acc: Math.round(p.coords.accuracy || 0)
+  }}).catch(() => {});
 }
-document.addEventListener('visibilitychange', () => { if (document.hidden) { clearInterval(locTimer); locTimer = null } else startLocSync() });
+function startLocSync(){
+  if (locWatch !== null || !navigator.geolocation || !R) return;
+  locWatch = navigator.geolocation.watchPosition(sendLoc, () => {}, {enableHighAccuracy: true, maximumAge: 5000, timeout: 20000});
+  try { navigator.wakeLock && navigator.wakeLock.request('screen').then(l => { wakeLock = l }).catch(() => {}) } catch (e) {}
+}
+function stopLocSync(){
+  if (locWatch !== null) { navigator.geolocation.clearWatch(locWatch); locWatch = null }
+  try { wakeLock && wakeLock.release(); wakeLock = null } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) stopLocSync(); else startLocSync() });
 if (!/^[A-Za-z0-9]{16,64}$/.test(R)) fail('লিংকটি সঠিক নয়');
 else {
   db = getFirestore(initializeApp(CFG));
