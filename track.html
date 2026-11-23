@@ -114,6 +114,8 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
   .shop{font-size:21px}.top img{height:52px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.invc b{font-size:17px;display:block;margin-bottom:4px}
+.invc p{margin:0 0 12px;color:var(--muted);font-size:14.5px}
 </style>
 </head>
 <body>
@@ -207,7 +209,7 @@ function render(d){
   if (d.cancelled) {
     const x = h('div', 'cancel', 'এই অর্ডারটি বাতিল করা হয়েছে। বিস্তারিত জানতে আমাদের সাথে যোগাযোগ করুন।'); x.style.marginTop = '14px'; hero.appendChild(x);
   } else {
-    const pill = h('span', 'pill' + (fin ? ' ok' : '')); pill.appendChild(h('i', fin ? '' : 'live-dot')); pill.appendChild(h('span', fin ? '' : 'live', fin ? 'ডেলিভারি সম্পন্ন' : 'চলমান — ' + steps[st])); hero.appendChild(pill);
+    const pill = h('span', 'pill' + (fin ? ' ok' : '')); pill.appendChild(h('i', fin ? '' : 'live-dot')); pill.appendChild(h('span', fin ? '' : 'live', fin ? 'ডেলিভারি সম্পন্ন' : 'চলমান, ' + steps[st])); hero.appendChild(pill);
     const seg = h('div', 'seg'); for (let i = 0; i < N; i++) seg.appendChild(h('span', i < st || fin ? 'd' : i === st ? 'c live' : '')); hero.appendChild(seg);
     const m = h('div', 'meta lab'); m.appendChild(h('span', fin ? '' : 'live', 'ধাপ ' + bn(st + 1) + ' / ' + bn(N))); m.appendChild(h('span', '', bn(Math.round((st + 1) * 100 / N)) + '%')); hero.appendChild(m);
     if (!fin) { const n = h('div', 'next muted', 'পরবর্তী ধাপ: '); n.appendChild(h('b', '', steps[st + 1])); n.firstChild.parentNode.lastChild.style.color = 'var(--fg)'; hero.appendChild(n) }
@@ -219,7 +221,7 @@ function render(d){
     const bx = h('div', 'rider');
     const ic = h('div', 'ric'); ic.innerHTML = SV(I.truck); bx.appendChild(ic);
     const rin = h('div', 'rin');
-    rin.appendChild(h('div', 'rl', fin ? 'ডেলিভারি করেছেন' : 'ডেলিভারিম্যান — পণ্য বুঝিয়ে দেবেন'));
+    rin.appendChild(h('div', 'rl', fin ? 'ডেলিভারি করেছেন' : 'ডেলিভারিম্যান, পণ্য বুঝিয়ে দেবেন'));
     if (rd.n) rin.appendChild(h('div', 'rn', rd.n));
     if (rTel) { const pa = h('a', 'rp', rd.p || rTel); pa.href = 'tel:' + rTel; rin.appendChild(pa) }
     bx.appendChild(rin);
@@ -242,7 +244,7 @@ function render(d){
       const col = h('div', 'col'); col.appendChild(h('span', 'adr', d.addr));
       const cg = d.confirmedGeo && d.confirmedGeo.lat ? d.confirmedGeo : null;
       const dest = cg ? (cg.lat + ',' + cg.lng) : encodeURIComponent(d.mapq || d.addr), custom = okMap(d.map) ? d.map : '';
-      if (cg) col.appendChild(h('span', 'gok', '✓ সঠিক লোকেশন শনাক্ত হয়েছে — ডেলিভারি আরও নির্ভুল হবে'));
+      if (cg) col.appendChild(h('span', 'gok', ' সঠিক লোকেশন শনাক্ত হয়েছে, ডেলিভারি আরও নির্ভুল হবে'));
       const bt = h('div', 'mapbtns');
       const a1 = document.createElement('a'); a1.className = 'mbtn'; a1.target = '_blank'; a1.rel = 'noopener noreferrer';
       a1.href = custom || 'https://www.google.com/maps/search/?api=1&query=' + dest; a1.innerHTML = SV(I.pin); a1.appendChild(document.createTextNode('ম্যাপে দেখুন'));
@@ -302,10 +304,64 @@ function render(d){
   if (okU(shop.group)) { const ga = h('a', '', 'রিভিউ ভিডিও পোস্ট করুন'); ga.href = shop.group; ga.target = '_blank'; ga.rel = 'noopener noreferrer'; rv.appendChild(document.createElement('br')); rv.appendChild(ga) }
   frag.appendChild(rv);
   frag.appendChild(h('div', 'foot', 'সর্বশেষ হালনাগাদ: ' + (d.upd ? fmtDT(d.upd) : '') + (shop.phone ? ' · যোগাযোগ: ' + shop.phone : '')));
+  frag.appendChild(invCard(d));
   const y = window.scrollY;
   app.textContent = ''; app.className = 'wrap fade'; app.appendChild(frag); window.scrollTo(0, y);
   setupPop(shop);
-  try { document.title = (shop.name ? shop.name + ' — ' : '') + 'অর্ডার #' + (d.no || '') } catch(e){}
+  try { document.title = (shop.name ? shop.name + ', ' : '') + 'অর্ডার #' + (d.no || '') } catch(e){}
+}
+const ESC = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let h2pLoad = null;
+function loadHtml2Pdf(){
+  if (window.html2pdf) return Promise.resolve(window.html2pdf);
+  if (h2pLoad) return h2pLoad;
+  return h2pLoad = new Promise((ok, no) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    s.onload = () => ok(window.html2pdf); s.onerror = () => { h2pLoad = null; no(new Error('pdf')) };
+    document.head.appendChild(s);
+  });
+}
+function invHtml(d){
+  const shop = d.shop || {}, a = d.amt || {};
+  const tt = +a.t || 0, pp = +a.p || 0, due = tt > 0 ? Math.max(0, tt - pp) : (+a.d || 0);
+  const times = (d.hist || []).map(x => +x.t || 0).filter(Boolean);
+  const dt = times.length ? new Date(Math.min(...times)) : new Date();
+  const dateTxt = dt.toLocaleDateString('bn-BD', {day: 'numeric', month: 'long', year: 'numeric'});
+  const money0 = n => '৳ ' + (+n || 0).toLocaleString('bn-BD');
+  const items = (d.items || []).map((x, i) => '<tr><td style="padding:9px 10px;border:1px solid #cfd8d8;text-align:center">' + (i + 1) + '</td><td style="padding:9px 10px;border:1px solid #cfd8d8">' + ESC(x) + '</td></tr>').join('');
+  const logo = /^data:image\//.test(shop.logo || '') ? '<img src="' + shop.logo + '" style="height:70px;object-fit:contain" alt="">' : '';
+  const row = (l, v, strong) => '<tr><td style="padding:7px 10px;border:1px solid #cfd8d8;' + (strong ? 'font-weight:700;' : '') + '">' + l + '</td><td style="padding:7px 10px;border:1px solid #cfd8d8;text-align:right;' + (strong ? 'font-weight:700;' : '') + '">' + v + '</td></tr>';
+  return '<div style="width:794px;min-height:1123px;box-sizing:border-box;padding:40px 46px;background:#fff;color:#17211f;font-family:\'Hind Siliguri\',\'Noto Sans Bengali\',sans-serif">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0b6e6e;padding-bottom:14px">' +
+      '<div>' + logo + '<div style="font-size:24px;font-weight:700;color:#0b6e6e;margin-top:6px">' + ESC(shop.name || 'Hamida Furniture') + '</div>' +
+      (shop.phone ? '<div style="font-size:14px">ফোন: ' + ESC(shop.phone) + '</div>' : '') + '</div>' +
+      '<div style="text-align:right"><div style="font-size:22px;font-weight:700">ইনভয়েস</div><div style="font-size:14px">নম্বর: #' + ESC(d.no || '') + '</div><div style="font-size:14px">তারিখ: ' + dateTxt + '</div></div>' +
+    '</div>' +
+    '<div style="margin:18px 0 8px;font-weight:700">কাস্টমার</div>' +
+    '<div style="font-size:15px;line-height:1.7">' + ESC(d.name || '') + (d.cphone ? '<br>ফোন: ' + ESC(d.cphone) : '') + (d.addr ? '<br>' + ESC(d.addr) : '') + '</div>' +
+    '<table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:15px"><tr style="background:#0b6e6e;color:#fff"><th style="padding:9px 10px;border:1px solid #0b6e6e;width:60px">ক্রম</th><th style="padding:9px 10px;border:1px solid #0b6e6e;text-align:left">পণ্যের বিবরণ</th></tr>' + items + '</table>' +
+    '<table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:15px">' + row('মোট বিল', money0(tt)) + row('পরিশোধিত', money0(pp)) + row('বাকি', money0(due), true) + '</table>' +
+    '<div style="margin-top:60px;padding-top:12px;border-top:1px dashed #9aa9a7;text-align:center;font-size:13px;color:#5a6967">এই ইনভয়েসটি স্বয়ংক্রিয়ভাবে তৈরি করা হয়েছে। সিল বা স্বাক্ষরের প্রয়োজন নেই।</div>' +
+  '</div>';
+}
+async function downloadInvoice(d){
+  const h2p = await loadHtml2Pdf();
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;background:#fff';
+  el.innerHTML = invHtml(d); document.body.appendChild(el);
+  try {
+    await h2p().set({margin: 0, filename: 'Invoice-' + (d.no || 'order') + '.pdf', image: {type: 'jpeg', quality: 0.98},
+      html2canvas: {scale: 2, useCORS: true, backgroundColor: '#ffffff'}, jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}}).from(el).save();
+  } finally { el.remove() }
+}
+function invCard(d){
+  const c = h('div', 'card invc');
+  c.appendChild(h('b', '', 'ইনভয়েস'));
+  c.appendChild(h('p', '', 'আপনার A4 ইনভয়েসটি PDF হিসেবে ডাউনলোড করুন। এতে সিল বা স্বাক্ষরের প্রয়োজন নেই।'));
+  const b = h('button', 'mbtn pri', 'ইনভয়েস ডাউনলোড করুন'); b.type = 'button';
+  b.addEventListener('click', async () => { b.disabled = true; b.textContent = 'তৈরি হচ্ছে…'; try { await downloadInvoice(d) } catch (e) { alert('ইনভয়েস তৈরি হয়নি, ইন্টারনেট দেখে আবার চেষ্টা করুন') } b.disabled = false; b.textContent = 'ইনভয়েস ডাউনলোড করুন' });
+  c.appendChild(b); return c;
 }
 function fail(m){ app.textContent = ''; const c = h('div', 'card err'); c.appendChild(h('h2', '', m)); c.appendChild(h('div', 'muted', 'লিংকটি ঠিক আছে কিনা দেখুন, অথবা আমাদের সাথে যোগাযোগ করুন।')); app.appendChild(c) }
 function cacheGet(){ try { const x = localStorage.getItem('rfT_' + T); return x ? JSON.parse(x) : null } catch(e){ return null } }
@@ -336,7 +392,7 @@ else {
     } catch (e) {}
     return null;
   }
-  // কাস্টমার (বা বাড়ির লোক) নিজের ফোন থেকে লিংকটা খুলে থাকলে, আর তার লোকেশন ঠিকানার কাছাকাছি হলে — সেই সঠিক লোকেশনটাই চুপচাপ সেভ হয়, যাতে ডেলিভারিম্যান সরাসরি সেখানে যেতে পারে। দূর থেকে (যেমন প্রবাসে) খুললে কিছুই সেভ হয় না, অনুমতি না দিলেও কিছু হয় না।
+  // কাস্টমার (বা বাড়ির লোক) নিজের ফোন থেকে লিংকটা খুলে থাকলে, আর তার লোকেশন ঠিকানার কাছাকাছি হলে, সেই সঠিক লোকেশনটাই চুপচাপ সেভ হয়, যাতে ডেলিভারিম্যান সরাসরি সেখানে যেতে পারে। দূর থেকে (যেমন প্রবাসে) খুললে কিছুই সেভ হয় না, অনুমতি না দিলেও কিছু হয় না।
   async function tryConfirmGeo(d) {
     if (geoTried || d.confirmedGeo || d.cancelled || !navigator.geolocation || !updateDoc) return;
     geoTried = true;
@@ -349,7 +405,7 @@ else {
         await updateDoc(doc(db, 'tracking', T), {confirmedGeo: {lat: +pos.coords.latitude.toFixed(5), lng: +pos.coords.longitude.toFixed(5), at: Date.now(), acc: Math.round(pos.coords.accuracy || 0)}});
         const d2 = Object.assign({}, d, {confirmedGeo: {lat: +pos.coords.latitude.toFixed(5), lng: +pos.coords.longitude.toFixed(5)}}); cacheSet(d2); render(d2);
       }
-    } catch (e) { /* অনুমতি নেই / দূরে / নেট নেই — চুপচাপ বাদ */ }
+    } catch (e) { /* অনুমতি নেই / দূরে / নেট নেই, চুপচাপ বাদ */ }
   }
   async function load(first){
     try {
