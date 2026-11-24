@@ -20,22 +20,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#eef3f3;--card:#fff;--fg:#17211f;--muted:#5a6967;--line:#d8e0df;--green:#0b6e6e;--green-soft:#dff1ef;--orange:#e8891c;--orange-soft:#fbe9cc;--red:#c62828;--red-soft:#fdeaea;--shadow:0 1px 2px rgba(10,40,38,.05),0 8px 24px rgba(10,40,38,.07)}
-@media (prefers-color-scheme:dark){:root{--bg:#0e1514;--card:#182120;--fg:#eef3f2;--muted:#a3b2af;--line:#2a3735;--green:#3fb8ae;--green-soft:#15302d;--orange:#f0a040;--orange-soft:#3a2a10;--red:#ff6b6f;--red-soft:#3a1c1e;--shadow:0 1px 2px rgba(0,0,0,.3)}}
+:root{--bg:#eef3f3;--card:#fff;--fg:#17211f;--muted:#5a6967;--line:#d8e0df;--green:#0b6e6e;--green-dk:#0a4f52;--green-soft:#dff1ef;--gold:#c9a24a;--orange:#e8891c;--orange-soft:#fbe9cc;--red:#c62828;--red-soft:#fdeaea;--shadow:0 1px 2px rgba(10,40,38,.05),0 10px 26px rgba(10,40,38,.08)}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1514;--card:#182120;--fg:#eef3f2;--muted:#a3b2af;--line:#2a3735;--green:#3fb8ae;--green-dk:#0a4f52;--green-soft:#15302d;--orange:#f0a040;--orange-soft:#3a2a10;--red:#ff6b6f;--red-soft:#3a1c1e;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 24px rgba(0,0,0,.35)}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0}
-body{background:var(--bg);color:var(--fg);font-family:'Hind Siliguri','Noto Sans Bengali',system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
-.wrap{max-width:560px;margin:0 auto;padding:12px 14px 40px}
-.top{display:flex;align-items:center;gap:10px;padding:6px 2px 12px}
-.top .shop{font-weight:700;font-size:18px;color:var(--green);flex:1;min-width:0}
-.top .tag{font-size:12.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:3px 11px}
-.hello{margin:2px 2px 14px}.hello b{font-size:20px;display:block;line-height:1.3}.hello span{color:var(--muted);font-size:14px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 14px}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 8px;text-align:center;box-shadow:var(--shadow)}
-.stat b{display:block;font-size:22px;line-height:1.2}.stat span{font-size:12.5px;color:var(--muted)}
+body{background:var(--bg);color:var(--fg);font-family:'Hind Siliguri','Noto Sans Bengali',system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+@keyframes rfAppIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#app{animation:rfAppIn .4s cubic-bezier(.22,.9,.3,1) both}
+.wrap{max-width:560px;margin:0 auto;padding:0 0 40px}
+.top{display:flex;align-items:center;gap:12px;padding:14px 16px calc(14px + env(safe-area-inset-top,0px));padding-top:calc(14px + env(safe-area-inset-top,0px));background:linear-gradient(120deg,#0a2a33 0%,#0b4f52 55%,#0b6e6e 100%);box-shadow:0 2px 0 var(--gold),0 6px 18px rgba(8,30,32,.22);position:sticky;top:0;z-index:5;margin:0 0 16px}
+.top .shop{font-weight:700;font-size:17.5px;color:#fff;flex:1;min-width:0;letter-spacing:.2px}
+.top .tag{font-size:12px;color:#eafaf8;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:4px 12px}
+.hello{margin:2px 14px 14px}.hello b{font-size:20px;display:block;line-height:1.3}.hello span{color:var(--muted);font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 14px 14px;padding:0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 8px 10px;text-align:center;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--line)}
+.stat.g::before{background:var(--green)}.stat.o::before{background:var(--orange)}
+.stat b{display:block;font-size:23px;line-height:1.2;font-weight:700}.stat span{font-size:12px;color:var(--muted)}
 .stat.g b{color:var(--green)}.stat.o b{color:var(--orange)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin:0 0 14px;box-shadow:var(--shadow);animation:in .25s ease both}
-@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.card.out{animation:out .35s ease forwards}@keyframes out{to{opacity:0;transform:scale(.97);height:0;padding:0;margin:0;border-width:0}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px;margin:0 14px 14px;box-shadow:var(--shadow);animation:in .32s cubic-bezier(.22,.9,.3,1) both;transition:box-shadow .2s}
+@keyframes in{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+.card.out{animation:out .32s cubic-bezier(.4,0,1,1) forwards}@keyframes out{to{opacity:0;transform:scale(.96);height:0;padding:0;margin:0;border-width:0}}
 .hd{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .no{flex:none;width:34px;height:34px;border-radius:11px;background:var(--green);color:#fff;font-weight:700;display:grid;place-items:center;font-size:15px}
 .hd .nm{flex:1;min-width:0;font-weight:700;font-size:18px;line-height:1.3;word-break:break-word}
@@ -54,7 +58,7 @@ body{background:var(--bg);color:var(--fg);font-family:'Hind Siliguri','Noto Sans
 .due span{font-size:14px}.due b{font-size:21px}
 .due.ok{background:var(--green-soft)}
 .note{margin:8px 0 0;background:var(--bg);border-radius:12px;padding:9px 12px;font-size:14.5px}
-.go{width:100%;margin-top:14px;border:0;border-radius:14px;background:var(--green);color:#fff;font:inherit;font-weight:700;font-size:16.5px;padding:14px;cursor:pointer}
+.go{width:100%;margin-top:14px;border:0;border-radius:14px;background:linear-gradient(135deg,var(--green-dk),var(--green));color:#fff;font:inherit;font-weight:700;font-size:16.5px;padding:15px;cursor:pointer;letter-spacing:.2px}
 .go:active{transform:scale(.99)}
 .lock{display:flex;align-items:center;gap:12px;opacity:.85}
 .lock .li{flex:none;width:42px;height:42px;border-radius:13px;background:var(--line);display:grid;place-items:center;color:var(--muted)}
@@ -63,12 +67,13 @@ body{background:var(--bg);color:var(--fg);font-family:'Hind Siliguri','Noto Sans
 .empty,.err{text-align:center;padding:46px 18px}
 .empty .big{font-size:44px;line-height:1}.empty h2,.err h2{margin:12px 0 4px;font-size:20px}.empty p,.err p{margin:0;color:var(--muted)}
 .sk{height:14px;border-radius:7px;background:linear-gradient(90deg,var(--line),transparent,var(--line));background-size:200% 100%;animation:sh 1.2s linear infinite;margin:10px 0}@keyframes sh{to{background-position:-200% 0}}
-.offline{display:none;background:var(--orange-soft);color:var(--fg);border-radius:12px;padding:8px 12px;margin:0 0 12px;font-size:14px;text-align:center}
+.offline{display:none;background:var(--orange-soft);color:var(--fg);border-radius:12px;padding:8px 12px;margin:0 14px 12px;font-size:14px;text-align:center}
 .offline.on{display:block}
 /* জমা দেওয়ার শিট */
 #sh{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:20}
 #sh.on{display:flex}
-.sheet{background:var(--card);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow-y:auto;animation:up .25s ease}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:22px 16px calc(18px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow-y:auto;animation:up .32s cubic-bezier(.22,.9,.3,1);position:relative}
+.sheet::before{content:"";position:absolute;top:9px;left:50%;transform:translateX(-50%);width:40px;height:4px;border-radius:4px;background:var(--line)}
 @keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
 .sheet h3{margin:0 0 2px;font-size:19px}.sheet .sub{color:var(--muted);font-size:14px;margin:0 0 14px}
 .sheet label{display:block;font-size:14px;font-weight:600;margin:14px 0 6px}
@@ -90,9 +95,9 @@ body{background:var(--bg);color:var(--fg);font-family:'Hind Siliguri','Noto Sans
 .btn-s[disabled]{opacity:.6}
 .warn{margin-top:12px;background:var(--orange-soft);border-radius:12px;padding:10px 12px;font-size:14.5px;display:none}.warn.on{display:block}
 .msg{margin-top:10px;color:var(--red);font-size:14px;display:none}.msg.on{display:block}
-#tt{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,120px);background:#17211f;color:#fff;padding:11px 20px;border-radius:30px;font-weight:600;font-size:15px;z-index:30;transition:transform .3s,opacity .3s;opacity:0;pointer-events:none;max-width:90vw;text-align:center}
-#tt.on{transform:translate(-50%,0);opacity:1}
-.foot{text-align:center;color:var(--muted);font-size:13px;padding:8px 0}
+#tt{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,120px) scale(.95);background:#14201e;color:#fff;padding:12px 22px;border-radius:30px;font-weight:600;font-size:15px;z-index:30;transition:transform .35s cubic-bezier(.22,.9,.3,1),opacity .3s;opacity:0;pointer-events:none;max-width:90vw;text-align:center;box-shadow:0 10px 28px rgba(0,0,0,.28)}
+#tt.on{transform:translate(-50%,0) scale(1);opacity:1}
+.foot{text-align:center;color:var(--muted);font-size:13px;padding:8px 14px 16px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 /* লোকেশন ব্লক ও ম্যাপ */
@@ -139,51 +144,13 @@ body{background:var(--bg);color:var(--fg);font-family:'Hind Siliguri','Noto Sans
 .nfit .bd{flex:1;min-width:0}.nfit .bd p{margin:0 0 3px;font-size:15px;word-break:break-word}.nfit .bd small{color:var(--muted);font-size:12.5px}
 .nfempty{text-align:center;color:var(--muted);padding:30px 10px}
 .callb.wa{background:#25D366}
-#inst{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:19;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);display:none;align-items:center;gap:12px;max-width:520px;margin:0 auto}
-#inst.on{display:flex}
+#inst{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:19;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:13px 15px;box-shadow:0 14px 34px rgba(10,40,38,.18);display:none;align-items:center;gap:12px;max-width:520px;margin:0 auto;opacity:0;transform:translateY(16px) scale(.97)}
+#inst.on{display:flex;animation:instIn .4s cubic-bezier(.22,1.1,.3,1) forwards}
+@keyframes instIn{to{opacity:1;transform:none}}
 #inst .ii{flex:none;width:40px;height:40px;border-radius:12px;background:var(--green);color:#fff;display:grid;place-items:center;font-size:20px}
 #inst .it{flex:1;font-size:14px}#inst .it b{display:block;font-size:15px}
 #inst button{flex:none;border:0;background:var(--green);color:#fff;font:inherit;font-weight:700;border-radius:10px;padding:9px 14px;cursor:pointer}
 #inst .ix{border:0;background:none;color:var(--muted);font-size:20px;padding:4px;cursor:pointer}
-
-/* ট্যাব, হিস্ট্রি, কনফার্ম ও সফল হওয়ার অ্যানিমেশন */
-.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:5px;margin:0 0 14px;box-shadow:var(--shadow)}
-.tab{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:700;font-size:15px;border-radius:12px;padding:10px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .25s,color .25s}
-.tab svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.tab.on{background:var(--green);color:#fff;box-shadow:0 4px 12px rgba(11,110,110,.25)}
-.tab .cnt{font-size:12px;background:rgba(127,127,127,.18);border-radius:10px;padding:0 7px;line-height:1.6}
-.chip.ok{background:var(--green-soft);color:var(--green)}
-.chip.wait{background:var(--orange-soft);color:var(--orange)}
-.chip.bad{background:var(--red-soft);color:var(--red)}
-.hist{border-left:4px solid var(--green)}
-.hist.wait{border-left-color:var(--orange)}
-.hist.bad{border-left-color:var(--red)}
-.hist .hm{color:var(--muted);font-size:14px;margin-top:2px}
-.empty .bigi{width:52px;height:52px;display:block;margin:0 auto;stroke:var(--green);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.mexp svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.nfsheet h3 svg{width:20px;height:20px;stroke:var(--green);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-#inst .ii svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.cf{position:fixed;inset:0;background:rgba(0,0,0,.5);display:grid;place-items:center;z-index:45;padding:20px;animation:fd .2s ease}
-.cfc{background:var(--card);border-radius:24px;padding:24px 20px 20px;max-width:360px;width:100%;text-align:center;animation:sc .35s cubic-bezier(.2,1.1,.3,1)}
-.cfi{width:58px;height:58px;border-radius:18px;background:var(--green-soft);color:var(--green);display:grid;place-items:center;margin:0 auto 12px}
-.cfi svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.cfc b{font-size:19px;display:block}
-.cfc p{color:var(--muted);font-size:15px;margin:8px 0 0}
-.cfb{display:flex;gap:10px;margin-top:20px}
-.cfb button{flex:1;font:inherit;font-weight:700;font-size:15.5px;border-radius:14px;padding:12px;cursor:pointer;border:0}
-.cfb .btn-c{background:var(--bg);color:var(--fg);border:1.5px solid var(--line)}
-.cfb .btn-s{background:var(--green);color:#fff}
-.okv{position:fixed;inset:0;background:var(--card);display:grid;place-items:center;z-index:50;transition:opacity .35s}
-.okv.out{opacity:0}
-.okc{text-align:center;animation:okin .5s cubic-bezier(.2,1.2,.3,1) both;padding:20px}
-.okr{width:112px;height:112px;margin:0 auto 18px;border-radius:50%;background:var(--green);display:grid;place-items:center;animation:okp 1.6s ease-out .25s 1 both}
-.okt{width:56px;height:56px;fill:none;stroke:#fff;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
-.okt path{stroke-dasharray:60;stroke-dashoffset:60;animation:dr .55s .4s ease forwards}
-.okc b{display:block;font-size:20px}
-.okc span{display:block;font-size:32px;font-weight:700;color:var(--green);margin:6px 0 4px}
-.okc small{color:var(--muted);font-size:15px}
-@keyframes okin{from{transform:scale(.8);opacity:0}to{transform:none;opacity:1}}
-@keyframes okp{0%{box-shadow:0 0 0 0 rgba(11,110,110,.45)}100%{box-shadow:0 0 0 46px rgba(11,110,110,0)}}
 </style>
 </head>
 <body>
@@ -191,7 +158,7 @@ body{background:var(--bg);color:var(--fg);font-family:'Hind Siliguri','Noto Sans
 <div id="sh" role="dialog" aria-modal="true"><div class="sheet" id="sheet"></div></div>
 <div id="nf" role="dialog" aria-modal="true"><div class="nfsheet" id="nfsheet"></div></div>
 <div id="tt" role="status"></div>
-<div id="inst"><div class="ii"></div><div class="it" id="inst-t"><b>ফোনে অ্যাপের মতো রাখুন</b>বারবার ব্রাউজার খুলতে হবে না</div><button id="inst-b" type="button">ইনস্টল করুন</button><button class="ix" id="inst-x" aria-label="বন্ধ করুন">&times;</button></div>
+<div id="inst"><div class="ii">📲</div><div class="it" id="inst-t"><b>ফোনে অ্যাপের মতো রাখুন</b>বারবার ব্রাউজার খুলতে হবে না</div><button id="inst-b" type="button">ইনস্টল করুন</button><button class="ix" id="inst-x" aria-label="বন্ধ করুন">&times;</button></div>
 <script type="module">
 // এই পেজ শুধু একটা ডকুমেন্ট পড়তে পারে: runs/{গোপন কোড}। লগইন লাগে না। লক করা ডেলিভারির কোনো তথ্য ডকুমেন্টেই থাকে না।
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -213,14 +180,6 @@ const telOf = s => String(s || '').split(/[,\/\n]/)[0].replace(/[^\d+]/g, '');
 const waNum = s => { let x = String(s || '').replace(/\D/g, ''); if (x.indexOf('00') === 0) x = x.slice(2); else if (/^0\d{10}$/.test(x)) x = '88' + x; else if (/^1\d{9}$/.test(x)) x = '880' + x; return x };
 const okMap = u => /^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(u || '');
 const IC = {
-  truck:'<rect x="1" y="6" width="14" height="11"/><path d="M15 9h4l3 3.5V17h-7z"/><circle cx="6" cy="18.5" r="1.8"/><circle cx="17.5" cy="18.5" r="1.8"/>',
-  check:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>',
-  cal:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8.5 15l2 2 4-4"/>',
-  shield:'<path d="M12 2l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V5z"/>',
-  cash:'<rect x="2" y="7" width="20" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M2 12h20"/>',
-  expand:'<path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>',
-  close:'<path d="M18 6L6 18"/><path d="M6 6l12 12"/>',
-  inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.5-6.9A2 2 0 0016.7 4H7.3a2 2 0 00-1.8 1.1z"/>',
   user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1"/>',
   phone:'<path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/>',
   pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z"/><circle cx="12" cy="10" r="3"/>',
@@ -230,7 +189,6 @@ const IC = {
   bell:'<path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>',
   wa:'<path d="M3 21l1.4-4.1A9 9 0 1112 21a8.9 8.9 0 01-4.6-1.3z"/><path d="M8.3 9.5c.2-.5.5-.5.8-.5h.6c.2 0 .4 0 .6.4.2.5.7 1.6.7 1.8.1.1.1.3 0 .4-.1.2-.1.3-.3.4-.1.2-.3.3-.4.5-.1.1-.3.3-.1.6.2.3.8 1.3 1.8 2.1 1.2 1 2.1 1.3 2.5 1.5.3.1.5.1.6-.1.2-.2.7-.8.9-1 .2-.2.3-.2.6-.1l1.6.8c.2.1.4.2.4.3.1.2.1.9-.2 1.7-.3.8-1.6 1.5-2.2 1.6-.6.1-1.2.2-3.9-.9-3.3-1.3-5.3-4.6-5.5-4.8-.1-.2-1.3-1.7-1.3-3.3 0-1.6.8-2.3 1.1-2.6z"/>'
 };
-document.querySelector('#inst .ii').appendChild(svg(IC.phone));
 function h(tag, cls, txt){ const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e }
 function svg(p, cls){ const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); if (cls) s.setAttribute('class', cls); s.innerHTML = p; return s }
 function link(cls, href, ext){ const a = document.createElement('a'); a.className = cls; a.href = href; if (ext) { a.target = '_blank'; a.rel = 'noopener noreferrer' } return a }
@@ -239,34 +197,19 @@ let tmr; function toast(m){ tt.textContent = m; tt.classList.add('on'); clearTim
 // জমা হয়ে যাওয়া ডেলিভারির তালিকা এই ফোনে মনে রাখা হয় (দ্রুত আড়াল করা ও দিনের হিসাবের জন্য)
 const LK = 'rfDrv_' + R;
 function doneGet(){ try { return JSON.parse(localStorage.getItem(LK) || '[]') } catch (e) { return [] } }
-function doneAdd(k, amt, it){ try { const d = doneGet(); d.push({k, amt, t: Date.now(), name: (it && it.name) || '', inv: (it && it.inv) || ''}); localStorage.setItem(LK, JSON.stringify(d.slice(-200))) } catch (e) {} }
+function doneAdd(k, amt){ try { const d = doneGet(); d.push({k, amt, t: Date.now()}); localStorage.setItem(LK, JSON.stringify(d.slice(-200))) } catch (e) {} }
 
 function fail(t, p){ app.textContent = ''; const c = h('div', 'card err'); c.appendChild(h('h2', '', t)); c.appendChild(h('p', '', p || 'অফিসে যোগাযোগ করে নতুন লিংক নিন।')); app.appendChild(c) }
 
 let run = null, current = null, noticeLen = null;
 function checkNewNotice(d){
   const n = Array.isArray(d.notices) ? d.notices.length : 0;
-  if (noticeLen !== null && n > noticeLen) { try { navigator.vibrate && navigator.vibrate([30, 60, 30]) } catch (e) {} if (!nf.classList.contains('on')) toast('অফিস থেকে নতুন বার্তা এসেছে') }
+  if (noticeLen !== null && n > noticeLen) { try { navigator.vibrate && navigator.vibrate([30, 60, 30]) } catch (e) {} if (!nf.classList.contains('on')) toast('🔔 অফিস থেকে নতুন বার্তা এসেছে') }
   noticeLen = n;
-}
-let tab = 'list';
-function histCard(x, d){
-  const rej = d.rej || {}, rAt = (rej[x.k] && rej[x.k].at) || 0, ok = !!(d.ok && d.ok[x.k]) && x.t >= rAt, bad = !ok && !!rej[x.k] && x.t < rAt;
-  const c = h('div', 'card hist' + (bad ? ' bad' : ok ? '' : ' wait'));
-  const hd = h('div', 'hd');
-  hd.appendChild(h('div', 'nm', x.name || 'কাস্টমার'));
-  hd.appendChild(h('span', 'chip ' + (ok ? 'ok' : bad ? 'bad' : 'wait'), ok ? 'অনুমোদিত' : bad ? 'ফেরত এসেছে' : 'অপেক্ষমাণ'));
-  c.appendChild(hd);
-  c.appendChild(h('div', 'hm', (x.inv ? 'ইনভয়েস #' + x.inv + ' · ' : '') + 'বুঝে পেয়েছেন ' + money(x.amt) + ' · ' + fmtWhen(x.t)));
-  if (bad) { const r = rej[x.k]; const txt = (r && typeof r === 'object') ? r.note : r; if (txt) c.appendChild(h('div', 'note', 'অফিসের নোট: ' + txt)) }
-  return c;
 }
 function render(d){
   run = d;
-  const dn = doneGet(), rej = d.rej || {};
-  // অফিস ফেরত পাঠালে (rej) ডেলিভারিটা আবার তালিকায় আসবে, যাতে ড্রাইভার আবার জমা দিতে পারে
-  const rejAt = k => (rej[k] && rej[k].at) || 0;
-  const hidden = new Set(dn.filter(x => x.t > rejAt(x.k)).map(x => x.k));
+  const dn = doneGet(), hidden = new Set(dn.map(x => x.k));
   const items = Object.entries(d.items || {}).filter(e => !hidden.has(e[0])).map(e => Object.assign({k: e[0]}, e[1])).sort((a, b) => (a.o || 0) - (b.o || 0));
   const open = items.filter(i => i.lock === false), locked = items.filter(i => i.lock !== false);
   const frag = document.createDocumentFragment();
@@ -282,37 +225,18 @@ function render(d){
   const st = h('div', 'stats');
   [['g', open.length, 'এখন করণীয়'], ['o', locked.length, 'লক করা'], ['', dn.length, 'সম্পন্ন']].forEach(x => { const s = h('div', 'stat ' + x[0]); s.appendChild(h('b', '', bn(x[1]))); s.appendChild(h('span', '', x[2])); st.appendChild(s) });
   frag.appendChild(st);
-  const tabs = h('div', 'tabs');
-  const mk = (id, icon, label, n) => {
-    const b = h('button', 'tab' + (tab === id ? ' on' : '')); b.type = 'button';
-    b.appendChild(svg(icon)); b.appendChild(document.createTextNode(label)); b.appendChild(h('span', 'cnt', bn(n)));
-    b.addEventListener('click', () => { if (tab !== id) { tab = id; render(run) } });
-    return b;
-  };
-  tabs.appendChild(mk('list', IC.truck, ' ডেলিভারি লিস্ট', open.length + locked.length));
-  tabs.appendChild(mk('history', IC.cal, ' হিস্ট্রি', dn.length));
-  frag.appendChild(tabs);
   const off = h('div', 'offline' + (navigator.onLine === false ? ' on' : ''), 'ইন্টারনেট নেই, নেট এলে আপনা-আপনি আপডেট হবে'); off.id = 'off'; frag.appendChild(off);
-  if (tab === 'history') {
-    if (!dn.length) {
-      const e = h('div', 'card empty'); e.appendChild(svg(IC.inbox, 'bigi'));
-      e.appendChild(h('h2', '', 'এখনো কোনো ডেলিভারি জমা হয়নি')); e.appendChild(h('p', '', 'জমা দেওয়া ডেলিভারিগুলো এখানে দেখা যাবে।')); frag.appendChild(e);
-    } else {
-      dn.slice().reverse().forEach((x, i) => { const cd = histCard(x, d); cd.style.setProperty('--i', i); frag.appendChild(cd) });
-    }
-  } else {
-    if (!items.length) {
-      const e = h('div', 'card empty'); e.appendChild(svg(dn.length ? IC.check : IC.inbox, 'bigi'));
-      e.appendChild(h('h2', '', dn.length ? 'সব ডেলিভারি সম্পন্ন' : 'এখন কোনো ডেলিভারি নেই'));
-      e.appendChild(h('p', '', dn.length ? 'অফিস নতুন কিছু আনলক করলে এখানেই দেখা যাবে।' : 'অফিস আনলক করলে এখানে দেখা যাবে।')); frag.appendChild(e);
-    }
-    open.forEach((it, i) => { const cd = openCard(it); cd.style.setProperty('--i', i); frag.appendChild(cd) });
-    locked.forEach(it => {
-      const c = h('div', 'card lock'); const li = h('div', 'li'); li.appendChild(svg(IC.shield)); c.appendChild(li);
-      const t = h('div'); t.appendChild(h('b', '', 'ডেলিভারি ' + bn(it.o || '')));
-      t.appendChild(h('span', '', 'লক করা আছে, অফিস আনলক করলে তথ্য দেখতে পাবেন')); c.appendChild(t); frag.appendChild(c);
-    });
+  if (!items.length) {
+    const e = h('div', 'card empty'); e.appendChild(h('div', 'big', dn.length ? '✅' : '📭'));
+    e.appendChild(h('h2', '', dn.length ? 'সব ডেলিভারি সম্পন্ন' : 'এখন কোনো ডেলিভারি নেই'));
+    e.appendChild(h('p', '', dn.length ? 'অফিস নতুন কিছু আনলক করলে এখানেই দেখা যাবে।' : 'অফিস আনলক করলে এখানে দেখা যাবে।')); frag.appendChild(e);
   }
+  open.forEach((it, i) => { const cd = openCard(it); cd.style.setProperty('--i', i); frag.appendChild(cd) });
+  locked.forEach(it => {
+    const c = h('div', 'card lock'); const li = h('div', 'li'); li.appendChild(svg(IC.lock)); c.appendChild(li);
+    const t = h('div'); t.appendChild(h('b', '', 'ডেলিভারি ' + bn(it.o || '')));
+    t.appendChild(h('span', '', 'লক করা আছে, অফিস আনলক করলে তথ্য দেখতে পাবেন')); c.appendChild(t); frag.appendChild(c);
+  });
   frag.appendChild(h('div', 'foot', (d.shop || 'Hamida Furniture') + (d.officePhone ? ' · অফিস: ' + d.officePhone : '')));
   app.textContent = ''; app.appendChild(frag);
   try { document.title = 'ডেলিভারি লিস্ট (' + open.length + ')' } catch (e) {}
@@ -336,7 +260,7 @@ function locBlock(it){
   if (it.bazar) { const b = h('div', 'bz'); b.appendChild(h('small', '', 'আগে এখানে পৌঁছান')); b.appendChild(h('b', '', it.bazar)); w.appendChild(b) }
   if (g && g.lat) {
     const m = h('div', 'mapw'), el = h('div', 'map'); m.appendChild(el); m.appendChild(h('span', 'mbadge', LBL[lv]));
-    const ex = h('button', 'mexp'); ex.appendChild(svg(IC.expand)); ex.type = 'button'; ex.setAttribute('aria-label', 'বড় করে দেখুন'); m.appendChild(ex); w.appendChild(m);
+    const ex = h('button', 'mexp', '⤢'); ex.type = 'button'; ex.setAttribute('aria-label', 'বড় করে দেখুন'); m.appendChild(ex); w.appendChild(m);
     let map = null;
     loadLeaflet().then(L => {
       map = L.map(el, {zoomControl: false, dragging: !L.Browser.mobile, tap: false, scrollWheelZoom: false}).setView([g.lat, g.lng], ZOOM[lv]);
@@ -344,7 +268,7 @@ function locBlock(it){
       if (lv === 'exact') L.circleMarker([g.lat, g.lng], {radius: 9, color: '#fff', weight: 3, fillColor: '#c62828', fillOpacity: 1}).addTo(map);
       else L.circle([g.lat, g.lng], {radius: RAD[lv], color: '#0b6e6e', weight: 2, fillColor: '#0b6e6e', fillOpacity: .18}).addTo(map);
       m.classList.add('ready'); setTimeout(() => map.invalidateSize(), 300);
-      ex.onclick = () => { const big = m.classList.toggle('big'); ex.replaceChildren(svg(big ? IC.close : IC.expand)); if (big) map.dragging.enable(); else if (L.Browser.mobile) map.dragging.disable(); setTimeout(() => { map.invalidateSize(); map.setView([g.lat, g.lng], ZOOM[lv]) }, 380) };
+      ex.onclick = () => { const big = m.classList.toggle('big'); ex.textContent = big ? '✕' : '⤢'; if (big) map.dragging.enable(); else if (L.Browser.mobile) map.dragging.disable(); setTimeout(() => { map.invalidateSize(); map.setView([g.lat, g.lng], ZOOM[lv]) }, 380) };
       meBtn.onclick = () => { if (!navigator.geolocation) return toast('এই ফোনে লোকেশন চলছে না');
         navigator.geolocation.getCurrentPosition(p => { const a = p.coords.latitude, b = p.coords.longitude; L.circleMarker([a, b], {radius: 8, color: '#fff', weight: 3, fillColor: '#1a73e8', fillOpacity: 1}).addTo(map); map.fitBounds([[a, b], [g.lat, g.lng]], {padding: [40, 40]});
           dl.textContent = 'আপনি ওই এলাকা থেকে প্রায় ' + bn(Math.round(km(a, b, g.lat, g.lng))) + ' কিমি দূরে'; }, () => toast('লোকেশনের অনুমতি দিন'), {enableHighAccuracy: true, timeout: 10000}) };
@@ -398,10 +322,10 @@ function openCard(it){
 // ───── জমা দেওয়ার শিট ─────
 let rec = null, stream = null, voice = '', vmime = '', rtimer = null, rsec = 0, armed = false, sending = false;
 function stopTracks(){ try { stream && stream.getTracks().forEach(t => t.stop()) } catch (e) {} stream = null }
-function closeSheet(quiet){ if (sending) return; try { if (rec && rec.state !== 'inactive') { rec.onstop = null; rec.stop() } } catch (e) {} stopTracks(); clearInterval(rtimer); rec = null; voice = ''; vmime = ''; armed = false; sh.classList.remove('on'); sheet.textContent = ''; current = null; if (quiet !== true && run) render(run); if (history.state && history.state.rfLayer) { try { history.back() } catch (e) {} } }
+function closeSheet(quiet){ if (sending) return; try { if (rec && rec.state !== 'inactive') { rec.onstop = null; rec.stop() } } catch (e) {} stopTracks(); clearInterval(rtimer); rec = null; voice = ''; vmime = ''; armed = false; sh.classList.remove('on'); sheet.textContent = ''; current = null; if (quiet !== true && run) render(run) }
 function openSheet(it){
   current = it; voice = ''; vmime = ''; armed = false; sheet.textContent = '';
-  sheet.appendChild(h('h3', '', (it.name || 'কাস্টমার') + ', ডেলিভারি সম্পন্ন'));
+  sheet.appendChild(h('h3', '', (it.name || 'কাস্টমার') + ' থেকে ডেলিভারি সম্পন্ন'));
   sheet.appendChild(h('p', 'sub', 'কাস্টমারের কাছে মাল বুঝিয়ে দেওয়ার পর এখানে হিসাব লিখুন।'));
   const l1 = h('label', '', 'কত টাকা বুঝে পেয়েছেন? (৳)'); l1.setAttribute('for', 'amt'); sheet.appendChild(l1);
   const ai = document.createElement('input'); ai.type = 'number'; ai.id = 'amt'; ai.inputMode = 'numeric'; ai.min = '0'; ai.placeholder = '0'; sheet.appendChild(ai);
@@ -416,7 +340,7 @@ function openSheet(it){
   const sb = h('button', 'btn-s', 'জমা দিন'); sb.type = 'button'; sb.id = 'sb'; sb.addEventListener('click', submit);
   rw.appendChild(cb); rw.appendChild(sb); sheet.appendChild(rw);
   ai.addEventListener('input', () => { armed = false; sb.textContent = 'জমা দিন'; wn.classList.remove('on'); ms.classList.remove('on') });
-  sh.classList.add('on'); try { history.pushState({rfLayer: 'sheet'}, '') } catch (e) {} setTimeout(() => ai.focus(), 250);
+  sh.classList.add('on'); setTimeout(() => ai.focus(), 250);
 }
 function drawVoice(){
   const vn = document.getElementById('vn'); if (!vn) return; vn.textContent = '';
@@ -426,7 +350,7 @@ function drawVoice(){
   b.addEventListener('click', live ? stopRec : startRec);
   const t = h('div', 'vt');
   if (live) t.textContent = 'রেকর্ড হচ্ছে… ' + bn(rsec) + ' সেকেন্ড (থামাতে বাটন চাপুন)';
-  else if (voice) { t.appendChild(document.createTextNode('ভয়েস নোট তৈরি হয়েছে')); const au = document.createElement('audio'); au.controls = true; au.src = voice; t.appendChild(au) }
+  else if (voice) { t.appendChild(document.createTextNode('ভয়েস নোট তৈরি ✓')); const au = document.createElement('audio'); au.controls = true; au.src = voice; t.appendChild(au) }
   else t.textContent = 'বাটন চেপে বলুন (সর্বোচ্চ ৬০ সেকেন্ড)';
   vn.appendChild(b); vn.appendChild(t);
   if (voice && !live) { const x = h('button', 'x', 'মুছুন'); x.type = 'button'; x.addEventListener('click', () => { voice = ''; vmime = ''; drawVoice() }); vn.appendChild(x) }
@@ -455,83 +379,52 @@ async function startRec(){
 }
 function stopRec(){ try { if (rec && rec.state === 'recording') rec.stop() } catch (e) {} }
 
-function submit(){
+async function submit(){
   if (sending || !current) return;
-  const ai = document.getElementById('amt'), ms = document.getElementById('ms');
+  const ai = document.getElementById('amt'), ms = document.getElementById('ms'), wn = document.getElementById('wn'), sb = document.getElementById('sb');
   ms.classList.remove('on');
   if (rec && rec.state === 'recording') { ms.textContent = 'আগে ভয়েস রেকর্ড থামান।'; ms.classList.add('on'); return }
   const raw = ai.value.trim(), amt = Math.round(parseFloat(raw));
   if (raw === '' || isNaN(amt) || amt < 0 || amt > 100000000) { ms.textContent = 'টাকার অংক লিখুন (কিছু না পেলে ০)।'; ms.classList.add('on'); ai.focus(); return }
-  askConfirm(amt);
-}
-function askConfirm(amt){
-  const it = current, due = +it.due || 0;
-  const ov = h('div', 'cf');
-  const cd = h('div', 'cfc');
-  const ic = h('div', 'cfi'); ic.appendChild(svg(IC.cash)); cd.appendChild(ic);
-  cd.appendChild(h('b', '', 'টাকা বুঝে পেয়েছেন?'));
-  cd.appendChild(h('p', '', money(amt) + ' বুঝে পেয়েছেন' + (due > 0 && amt !== due ? ' (নেওয়ার কথা ছিল ' + money(due) + ')' : '') + '। জমা দিলে এটি আপনার ফোন থেকে সরে যাবে।'));
-  const rw = h('div', 'cfb');
-  const no = h('button', 'btn-c', 'না, ফিরে যান'); no.type = 'button'; no.addEventListener('click', () => ov.remove());
-  const yes = h('button', 'btn-s', 'হ্যাঁ, জমা দিন'); yes.type = 'button';
-  yes.addEventListener('click', () => { ov.remove(); doSend(amt) });
-  rw.appendChild(no); rw.appendChild(yes); cd.appendChild(rw); ov.appendChild(cd);
-  ov.addEventListener('click', e => { if (e.target === ov) ov.remove() });
-  document.body.appendChild(ov);
-}
-function showOk(amt){
-  const ov = h('div', 'okv'), c = h('div', 'okc'), ring = h('div', 'okr');
-  ring.appendChild(svg(IC.check, 'okt')); c.appendChild(ring);
-  c.appendChild(h('b', '', 'টাকা জমা হয়েছে'));
-  c.appendChild(h('span', '', money(amt)));
-  c.appendChild(h('small', '', 'ধন্যবাদ'));
-  ov.appendChild(c); document.body.appendChild(ov);
-  setTimeout(() => { ov.classList.add('out'); setTimeout(() => ov.remove(), 380) }, 2000);
-}
-async function doSend(amt){
-  const it = current, k = it.k;
-  const sb = document.getElementById('sb'), ms = document.getElementById('ms'), nt = document.getElementById('nt');
-  const note = ((nt && nt.value) || '').trim().slice(0, 400);
-  const due = +it.due || 0;
-  sending = true; if (sb) { sb.disabled = true; sb.textContent = 'জমা হচ্ছে…' }
+  const due = +current.due || 0;
+  if (!armed) {
+    armed = true; sb.textContent = 'হ্যাঁ, ' + money(amt) + ' জমা দিন';
+    wn.textContent = 'আপনি ' + money(amt) + ' পেয়েছেন' + (due > 0 && amt !== due ? ' (নেওয়ার কথা ছিল ' + money(due) + ')' : '') + '। ঠিক থাকলে আবার চাপুন, জমা দিলে এটা আপনার ফোন থেকে সরে যাবে।';
+    wn.classList.add('on'); return;
+  }
+  const note = (document.getElementById('nt').value || '').trim().slice(0, 400), k = current.k, it = current;
+  sending = true; sb.disabled = true; sb.textContent = 'জমা হচ্ছে…';
   try {
     const b = writeBatch(db), id = R + '_' + k;
     b.set(doc(db, 'runReports', id), {run: R, key: k, inv: String(it.inv || ''), driver: String(run.name || ''), received: amt, due, note, hasVoice: !!voice, at: Date.now(), applied: false});
     if (voice) b.set(doc(db, 'runVoice', id), {run: R, key: k, mime: vmime || 'audio/webm', data: voice, at: Date.now()});
     b.update(doc(db, 'runs', R), {['items.' + k]: deleteField()});
     await b.commit();
-    doneAdd(k, amt, it); sending = false; closeSheet(true);
-    try { navigator.vibrate && navigator.vibrate(40) } catch (e) {}
-    showOk(amt);
-    const card = app.querySelector('.card[data-k="' + k + '"]');
-    if (card) { card.classList.add('out'); setTimeout(() => render(run), 360) } else render(run);
+    doneAdd(k, amt); sending = false; closeSheet(true); try { navigator.vibrate && navigator.vibrate(40) } catch (e) {}
+    const pp = h('div', 'pop'), pb = h('div'); pb.appendChild(svg('<path d="M5 13l4 4L19 7"/>')); pb.appendChild(document.createTextNode('জমা হয়েছে, ধন্যবাদ')); pp.appendChild(pb); document.body.appendChild(pp); setTimeout(() => pp.remove(), 1500);
+    const card = app.querySelector('.card[data-k="' + k + '"]'); if (card) { card.classList.add('out'); setTimeout(() => render(run), 360) } else render(run);
   } catch (e) {
-    console.error('submit', e && e.code); sending = false;
-    if (sb) { sb.disabled = false; sb.textContent = 'আবার চেষ্টা করুন' }
-    if (ms) { ms.textContent = (e && e.code === 'permission-denied') ? 'অফিস এই ডেলিভারিটি লক বা বন্ধ করে দিয়েছে। অফিসে যোগাযোগ করুন।' : 'জমা হয়নি, ইন্টারনেট দেখে আবার চেষ্টা করুন।'; ms.classList.add('on') }
+    console.error('submit', e && e.code); sending = false; sb.disabled = false; sb.textContent = 'আবার চেষ্টা করুন'; armed = true;
+    ms.textContent = (e && e.code === 'permission-denied') ? 'অফিস এই ডেলিভারিটি লক বা বন্ধ করে দিয়েছে। অফিসে যোগাযোগ করুন।' : 'জমা হয়নি, ইন্টারনেট দেখে আবার চেষ্টা করুন।';
+    ms.classList.add('on');
   }
 }
 sh.addEventListener('click', e => { if (e.target === sh) closeSheet() });
 function openNotices(notices){
   nfsheet.textContent = '';
-  { const t3 = h('h3'); t3.appendChild(svg(IC.bell)); t3.appendChild(document.createTextNode(' অফিসের বার্তা')); nfsheet.appendChild(t3) }
+  nfsheet.appendChild(h('h3', '', '🔔 অফিসের বার্তা'));
   if (!notices.length) nfsheet.appendChild(h('div', 'nfempty', 'এখনো কোনো বার্তা আসেনি'));
   else notices.slice().reverse().forEach(n => {
     const it = h('div', 'nfit'); const ic = h('div', 'ic'); ic.appendChild(svg(IC.bell)); it.appendChild(ic);
     const bd = h('div', 'bd'); bd.appendChild(h('p', '', n.msg || '')); bd.appendChild(h('small', '', fmtWhen(n.at)));
     it.appendChild(bd); nfsheet.appendChild(it);
   });
-  nf.classList.add('on'); try { history.pushState({rfLayer: 'notice'}, '') } catch (e) {}
+  nf.classList.add('on');
   try { localStorage.setItem('rfSeen_' + R, String(notices.length)) } catch (e) {}
   if (run) render(run);
 }
 function fmtWhen(t){ try { return new Date(t).toLocaleString('bn-BD', {day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'}) } catch (e) { return '' } }
-function closeNf(){ nf.classList.remove('on'); if (history.state && history.state.rfLayer) { try { history.back() } catch (e) {} } }
-nf.addEventListener('click', e => { if (e.target === nf) closeNf() });
-window.addEventListener('popstate', () => {
-  if (sh.classList.contains('on')) { if (!sending) closeSheet(); return }
-  if (nf.classList.contains('on')) { nf.classList.remove('on'); return }
-});
+nf.addEventListener('click', e => { if (e.target === nf) nf.classList.remove('on') });
 window.addEventListener('online', () => { const o = document.getElementById('off'); if (o) o.classList.remove('on') });
 window.addEventListener('offline', () => { const o = document.getElementById('off'); if (o) o.classList.add('on') });
 
@@ -540,7 +433,7 @@ window.addEventListener('offline', () => { const o = document.getElementById('of
   try{
     const abs = p => new URL(p, location.href).href;
     const manifest = {
-      name: (run && run.shop ? run.shop + ', ' : '') + 'ডেলিভারি লিস্ট',
+      name: (run && run.shop ? run.shop + ': ' : '') + 'ডেলিভারি লিস্ট',
       short_name: 'ডেলিভারি লিস্ট',
       start_url: location.pathname + location.search,
       scope: location.pathname.replace(/[^/]+$/, ''),
@@ -570,30 +463,16 @@ window.addEventListener('offline', () => { const o = document.getElementById('of
   instX.addEventListener('click', () => { inst.classList.remove('on'); try { sessionStorage.setItem('rfInstDismiss', '1') } catch (e) {} });
 })();
 let db;
-// অফিসের জন্য চুপচাপ লাইভ লোকেশন: গাড়ির গতি ও দিক সহ, পেজ খোলা থাকলে (ড্রাইভারের স্ক্রিনে কোনো চিহ্ন নেই)
-let locWatch = null, locLast = 0, wakeLock = null;
-function sendLoc(p){
-  const now = Date.now();
-  if (now - locLast < 10000) return;
-  locLast = now;
-  const sp = p.coords.speed, hd = p.coords.heading;
-  updateDoc(doc(db, 'runs', R), {loc: {
-    lat: +p.coords.latitude.toFixed(5), lng: +p.coords.longitude.toFixed(5), at: now,
-    spd: (sp != null && sp >= 0) ? Math.round(sp * 3.6) : 0,
-    hdg: (hd != null && !isNaN(hd)) ? Math.round(hd) : -1,
-    acc: Math.round(p.coords.accuracy || 0)
-  }}).catch(() => {});
-}
+// অফিসের জন্য চুপচাপ লাইভ লোকেশন — ড্রাইভারের স্ক্রিনে এর কোনো চিহ্ন (ব্যাজ/টেক্সট/আইকন) নেই, শুধু পেজ খোলা থাকলে পেছন থেকে অবস্থান পাঠানো হয়
+let locTimer = null;
 function startLocSync(){
-  if (locWatch !== null || !navigator.geolocation || !R) return;
-  locWatch = navigator.geolocation.watchPosition(sendLoc, () => {}, {enableHighAccuracy: true, maximumAge: 5000, timeout: 20000});
-  try { navigator.wakeLock && navigator.wakeLock.request('screen').then(l => { wakeLock = l }).catch(() => {}) } catch (e) {}
+  if (locTimer || !navigator.geolocation || !R) return;
+  const send = () => { try { navigator.geolocation.getCurrentPosition(pos => {
+    updateDoc(doc(db, 'runs', R), {loc: {lat: +pos.coords.latitude.toFixed(5), lng: +pos.coords.longitude.toFixed(5), at: Date.now()}}).catch(() => {});
+  }, () => {}, {enableHighAccuracy: true, timeout: 15000, maximumAge: 20000}) } catch (e) {} };
+  send(); locTimer = setInterval(send, 45000);
 }
-function stopLocSync(){
-  if (locWatch !== null) { navigator.geolocation.clearWatch(locWatch); locWatch = null }
-  try { wakeLock && wakeLock.release(); wakeLock = null } catch (e) {}
-}
-document.addEventListener('visibilitychange', () => { if (document.hidden) stopLocSync(); else startLocSync() });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { clearInterval(locTimer); locTimer = null } else startLocSync() });
 if (!/^[A-Za-z0-9]{16,64}$/.test(R)) fail('লিংকটি সঠিক নয়');
 else {
   db = getFirestore(initializeApp(CFG));
