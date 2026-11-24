@@ -207,7 +207,6 @@ const CFG = {
 };
 const R = new URLSearchParams(location.search).get('r') || '';
 const app = document.getElementById('app'), sh = document.getElementById('sh'), sheet = document.getElementById('sheet'), tt = document.getElementById('tt'), nf = document.getElementById('nf'), nfsheet = document.getElementById('nfsheet');
-document.querySelector('#inst .ii').appendChild(svg(IC.phone));
 const bn = x => String(x).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'.charAt(d));
 const money = n => '৳ ' + (+n || 0).toLocaleString('bn-BD');
 const telOf = s => String(s || '').split(/[,\/\n]/)[0].replace(/[^\d+]/g, '');
@@ -231,6 +230,7 @@ const IC = {
   bell:'<path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>',
   wa:'<path d="M3 21l1.4-4.1A9 9 0 1112 21a8.9 8.9 0 01-4.6-1.3z"/><path d="M8.3 9.5c.2-.5.5-.5.8-.5h.6c.2 0 .4 0 .6.4.2.5.7 1.6.7 1.8.1.1.1.3 0 .4-.1.2-.1.3-.3.4-.1.2-.3.3-.4.5-.1.1-.3.3-.1.6.2.3.8 1.3 1.8 2.1 1.2 1 2.1 1.3 2.5 1.5.3.1.5.1.6-.1.2-.2.7-.8.9-1 .2-.2.3-.2.6-.1l1.6.8c.2.1.4.2.4.3.1.2.1.9-.2 1.7-.3.8-1.6 1.5-2.2 1.6-.6.1-1.2.2-3.9-.9-3.3-1.3-5.3-4.6-5.5-4.8-.1-.2-1.3-1.7-1.3-3.3 0-1.6.8-2.3 1.1-2.6z"/>'
 };
+document.querySelector('#inst .ii').appendChild(svg(IC.phone));
 function h(tag, cls, txt){ const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e }
 function svg(p, cls){ const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); if (cls) s.setAttribute('class', cls); s.innerHTML = p; return s }
 function link(cls, href, ext){ const a = document.createElement('a'); a.className = cls; a.href = href; if (ext) { a.target = '_blank'; a.rel = 'noopener noreferrer' } return a }
@@ -570,16 +570,30 @@ window.addEventListener('offline', () => { const o = document.getElementById('of
   instX.addEventListener('click', () => { inst.classList.remove('on'); try { sessionStorage.setItem('rfInstDismiss', '1') } catch (e) {} });
 })();
 let db;
-// অফিসের জন্য চুপচাপ লাইভ লোকেশন, ড্রাইভারের স্ক্রিনে এর কোনো চিহ্ন (ব্যাজ/টেক্সট/আইকন) নেই, শুধু পেজ খোলা থাকলে পেছন থেকে অবস্থান পাঠানো হয়
-let locTimer = null;
-function startLocSync(){
-  if (locTimer || !navigator.geolocation || !R) return;
-  const send = () => { try { navigator.geolocation.getCurrentPosition(pos => {
-    updateDoc(doc(db, 'runs', R), {loc: {lat: +pos.coords.latitude.toFixed(5), lng: +pos.coords.longitude.toFixed(5), at: Date.now()}}).catch(() => {});
-  }, () => {}, {enableHighAccuracy: true, timeout: 15000, maximumAge: 20000}) } catch (e) {} };
-  send(); locTimer = setInterval(send, 45000);
+// অফিসের জন্য চুপচাপ লাইভ লোকেশন: গাড়ির গতি ও দিক সহ, পেজ খোলা থাকলে (ড্রাইভারের স্ক্রিনে কোনো চিহ্ন নেই)
+let locWatch = null, locLast = 0, wakeLock = null;
+function sendLoc(p){
+  const now = Date.now();
+  if (now - locLast < 10000) return;
+  locLast = now;
+  const sp = p.coords.speed, hd = p.coords.heading;
+  updateDoc(doc(db, 'runs', R), {loc: {
+    lat: +p.coords.latitude.toFixed(5), lng: +p.coords.longitude.toFixed(5), at: now,
+    spd: (sp != null && sp >= 0) ? Math.round(sp * 3.6) : 0,
+    hdg: (hd != null && !isNaN(hd)) ? Math.round(hd) : -1,
+    acc: Math.round(p.coords.accuracy || 0)
+  }}).catch(() => {});
 }
-document.addEventListener('visibilitychange', () => { if (document.hidden) { clearInterval(locTimer); locTimer = null } else startLocSync() });
+function startLocSync(){
+  if (locWatch !== null || !navigator.geolocation || !R) return;
+  locWatch = navigator.geolocation.watchPosition(sendLoc, () => {}, {enableHighAccuracy: true, maximumAge: 5000, timeout: 20000});
+  try { navigator.wakeLock && navigator.wakeLock.request('screen').then(l => { wakeLock = l }).catch(() => {}) } catch (e) {}
+}
+function stopLocSync(){
+  if (locWatch !== null) { navigator.geolocation.clearWatch(locWatch); locWatch = null }
+  try { wakeLock && wakeLock.release(); wakeLock = null } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) stopLocSync(); else startLocSync() });
 if (!/^[A-Za-z0-9]{16,64}$/.test(R)) fail('লিংকটি সঠিক নয়');
 else {
   db = getFirestore(initializeApp(CFG));
