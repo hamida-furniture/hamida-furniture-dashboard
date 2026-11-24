@@ -223,7 +223,7 @@ function render(d){
     if (d.note) hero.appendChild(h('div', 'note', d.note));
   }
   // ── ডেলিভারিম্যান / রাইডার বক্স ──
-  const rd = d.rider || {}, rTel = telOf(rd.p);
+  const rd = d.assigned ? (d.rider || {}) : {}, rTel = telOf(rd.p);
   if (!d.cancelled && (rd.n || rTel)) {
     const bx = h('div', 'rider');
     const ic = h('div', 'ric'); ic.innerHTML = SV(I.truck); bx.appendChild(ic);
